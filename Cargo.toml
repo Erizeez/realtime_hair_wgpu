@@ -15,3 +15,5 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.13.2" }
+gloo-events = "0.2.0"
+web-sys = { version = "0.3.69", features = ["Element", "Document", "Window"] }
