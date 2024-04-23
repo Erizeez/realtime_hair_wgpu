@@ -1,11 +1,20 @@
+mod on_screen_fps;
+mod physic_simulation;
 mod web_fullscreen;
 
 use bevy::prelude::*;
+use on_screen_fps::OnScreenFpsPlugin;
+use physic_simulation::PhysicSimulationPlugin;
 use web_fullscreen::FullViewportPlugin;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, FullViewportPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            FullViewportPlugin,
+            OnScreenFpsPlugin,
+            PhysicSimulationPlugin,
+        ))
         .add_systems(Startup, setup)
         .run();
 }
