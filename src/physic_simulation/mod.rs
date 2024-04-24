@@ -1,5 +1,7 @@
 mod communication;
 mod data;
+mod display;
+mod pipeline;
 mod scheduler;
 mod simulation;
 
@@ -14,12 +16,21 @@ use bevy::{
 
 use scheduler::*;
 
+use self::display::{setup_display, simulation_text_update_system};
+
 pub struct PhysicSimulationPlugin;
 
 impl Plugin for PhysicSimulationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_scheduler);
-        app.add_systems(Update, (schedule_simulation, simulation_toggle));
+        app.add_systems(Startup, (setup_scheduler, setup_display));
+        app.add_systems(
+            Update,
+            (
+                schedule_simulation,
+                simulation_toggle,
+                simulation_text_update_system,
+            ),
+        );
     }
 }
 
@@ -37,10 +48,20 @@ fn simulation_toggle(
         } else if scheduler.status == SimulationStatus::Paused {
             scheduler.resume_scheduler();
         } else if scheduler.status == SimulationStatus::Stopped {
-            scheduler.start_scheduler(&mut commands, meshes, materials);
+            scheduler.init_scheduler(&mut commands, meshes, materials, true);
         }
     } else if kbd.just_pressed(KeyCode::Escape) {
         let mut scheduler = q.single_mut();
         scheduler.stop_scheduler();
+    } else if kbd.just_pressed(KeyCode::KeyN) {
+        let mut scheduler = q.single_mut();
+        if scheduler.status == SimulationStatus::Running {
+            scheduler.parse_scheduler()
+        } else if scheduler.status == SimulationStatus::Paused {
+            scheduler.singlestep_scheduler();
+        } else if scheduler.status == SimulationStatus::Stopped {
+            scheduler.init_scheduler(&mut commands, meshes, materials, false);
+            scheduler.singlestep_scheduler();
+        }
     }
 }

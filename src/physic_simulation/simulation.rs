@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use bevy::{
     asset::Assets,
     ecs::system::{Commands, ResMut},
@@ -12,7 +10,7 @@ use bevy::{
 };
 
 use super::{
-    data::{SimulationData, SimulationObject, SimulationTaskInterface},
+    data::{SimulationObject, SimulationTaskInterface},
     PhsicaSimulationScheduler,
 };
 
@@ -47,6 +45,6 @@ pub fn init_simulation(
     });
 }
 
-pub fn simulate(task_interface: SimulationTaskInterface) {
+pub fn simulate(task_interface: &mut SimulationTaskInterface) {
     info!("simulate");
 }
