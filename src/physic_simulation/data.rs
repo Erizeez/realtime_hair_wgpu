@@ -1,4 +1,12 @@
+use std::time::Duration;
+
 use bevy::{asset::Handle, math::Vec3, render::mesh::Mesh};
+
+#[derive(Default, Clone)]
+pub struct SimulationTaskInterface {
+    pub data: SimulationData,
+    pub time: Duration,
+}
 
 #[derive(Default, Clone)]
 pub struct SimulationData {

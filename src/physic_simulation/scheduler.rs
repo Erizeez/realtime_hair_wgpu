@@ -1,5 +1,6 @@
-use super::communication::SimulationDataReceiver;
-use super::communication::SimulationDataSender;
+use super::communication::{
+    init_simulation_channel, SimulationResultReceiver, SimulationResultSender,
+};
 use super::data::*;
 use super::simulation::*;
 
@@ -29,8 +30,8 @@ pub struct PhsicaSimulationScheduler {
     pub iteration_cnt: u32,
     pub status: SimulationStatus,
     pub simulation_data: SimulationData,
-    pub data_sender: SimulationDataSender,
-    pub data_receiver: SimulationDataReceiver,
+    pub sender: SimulationResultSender,
+    pub receiver: SimulationResultReceiver,
 }
 
 impl PhsicaSimulationScheduler {
@@ -38,14 +39,19 @@ impl PhsicaSimulationScheduler {
         let thread_pool = AsyncComputeTaskPool::get();
         let data = self.simulation_data.clone();
 
+        let task_interface = SimulationTaskInterface {
+            data,
+            time: std::time::Duration::from_secs(0),
+        };
+
         let entity = commands.spawn_empty().id();
-        let sender = self.data_sender.0.clone();
+        let sender = self.sender.0.clone();
         let task = thread_pool
             .spawn(async move {
                 let mut commands = CommandQueue::default();
-                simulate(data.clone());
+                simulate(task_interface.clone());
 
-                sender.send(data).unwrap();
+                sender.send(task_interface).unwrap();
             })
             .detach();
     }
@@ -82,13 +88,13 @@ pub struct PhysicSimulationResult(Task<CommandQueue>);
 pub fn setup_scheduler(mut commands: Commands) {
     // create our UI root node
     // this is the wrapper/container for the text
-    let (sender, receiver) = crossbeam_channel::unbounded::<SimulationData>();
+    let (sender, receiver) = init_simulation_channel();
     let _ = commands.spawn((PhsicaSimulationScheduler {
         iteration_cnt: 0,
         status: SimulationStatus::Stopped,
         simulation_data: SimulationData::default(),
-        data_sender: SimulationDataSender(sender),
-        data_receiver: SimulationDataReceiver(receiver),
+        sender: SimulationResultSender(sender),
+        receiver: SimulationResultReceiver(receiver),
     },));
 }
 
@@ -98,9 +104,9 @@ pub fn schedule_simulation(
     mut simulation_tasks: Query<&mut PhysicSimulationResult>,
 ) {
     let mut scheduler = q.single_mut();
-    scheduler.data_receiver.0.try_recv().map(|data| {
+    scheduler.receiver.0.try_recv().map(|task_interface| {
         info!("receive data");
-        scheduler.simulation_data = data;
+        scheduler.simulation_data = task_interface.data;
     });
     // let mut simulation_task = simulation_tasks.single_mut();
     // if let Some(mut task_results) = block_on(future::poll_once(&mut simulation_task.0)) {

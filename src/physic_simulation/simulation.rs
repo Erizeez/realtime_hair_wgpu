@@ -12,7 +12,7 @@ use bevy::{
 };
 
 use super::{
-    data::{SimulationData, SimulationObject},
+    data::{SimulationData, SimulationObject, SimulationTaskInterface},
     PhsicaSimulationScheduler,
 };
 
@@ -47,6 +47,6 @@ pub fn init_simulation(
     });
 }
 
-pub fn simulate(scheduler: SimulationData) {
+pub fn simulate(task_interface: SimulationTaskInterface) {
     info!("simulate");
 }
