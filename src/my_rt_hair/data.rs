@@ -1,11 +1,4 @@
 use bevy::{asset::Handle, math::Vec3, render::mesh::Mesh};
-use instant::Duration;
-
-#[derive(Default, Clone)]
-pub struct SimulationTaskInterface {
-    pub data: SimulationData,
-    pub elapsed: Duration,
-}
 
 //  Add anything necessary during the simulation HERE.
 #[derive(Default, Clone)]

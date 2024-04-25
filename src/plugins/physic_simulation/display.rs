@@ -16,7 +16,7 @@ use bevy::{
     },
 };
 
-use super::PhsicaSimulationScheduler;
+use super::{traits::PhysicalSimulation, PhsicaSimulationScheduler};
 
 #[derive(Component)]
 struct PhysicDisplayRoot;
@@ -106,9 +106,12 @@ pub fn setup_display(mut commands: Commands) {
     commands.entity(root).push_children(&[text_display]);
 }
 
-pub fn simulation_text_update_system(
+pub fn simulation_text_update_system<
+    T: Send + Sync + 'static,
+    V: PhysicalSimulation<T> + Send + Sync + 'static,
+>(
     mut query_text: Query<&mut Text, With<PhysicDisplayText>>,
-    mut query_scheduler: Query<&mut PhsicaSimulationScheduler>,
+    mut query_scheduler: Query<&mut PhsicaSimulationScheduler<T, V>>,
 ) {
     for mut text in &mut query_text {
         let result = query_scheduler.get_single_mut();

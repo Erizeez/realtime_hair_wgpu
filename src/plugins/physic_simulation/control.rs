@@ -1,12 +1,4 @@
-mod communication;
-mod data;
-mod display;
-mod pipeline;
-mod scheduler;
-mod simulation;
-
 use bevy::{
-    app::{App, Plugin, Startup, Update},
     asset::Assets,
     ecs::system::{Commands, Query, Res, ResMut},
     input::{keyboard::KeyCode, ButtonInput},
@@ -14,31 +6,16 @@ use bevy::{
     render::mesh::Mesh,
 };
 
-use scheduler::*;
+use super::{traits::PhysicalSimulation, PhsicaSimulationScheduler, SimulationStatus};
 
-use self::display::{setup_display, simulation_text_update_system};
-
-pub struct PhysicSimulationPlugin;
-
-impl Plugin for PhysicSimulationPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup_scheduler, setup_display));
-        app.add_systems(
-            Update,
-            (
-                schedule_simulation,
-                simulation_toggle,
-                simulation_text_update_system,
-            ),
-        );
-    }
-}
-
-fn simulation_toggle(
+pub fn simulation_toggle<
+    T: Clone + Send + Sync + 'static,
+    V: PhysicalSimulation<T> + Send + Sync + 'static,
+>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut q: Query<&mut PhsicaSimulationScheduler>,
+    mut q: Query<&mut PhsicaSimulationScheduler<T, V>>,
     kbd: Res<ButtonInput<KeyCode>>,
 ) {
     if kbd.just_pressed(KeyCode::Space) {

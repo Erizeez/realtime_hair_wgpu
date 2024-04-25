@@ -1,20 +1,22 @@
+use std::marker::PhantomData;
+
 use super::communication::{
     init_simulation_channel, SimulationResultReceiver, SimulationResultSender,
 };
 use super::data::*;
-use super::simulation::*;
+use super::traits::PhysicalSimulation;
 
+use bevy::ecs::bundle::Bundle;
 use bevy::tasks::AsyncComputeTaskPool;
 use bevy::{
     asset::Assets,
     ecs::{
         component::Component,
-        system::{CommandQueue, Commands, Query, ResMut},
+        system::{Commands, Query, ResMut},
     },
     log::info,
     pbr::StandardMaterial,
     render::mesh::Mesh,
-    tasks::Task,
 };
 use instant::{Duration, Instant};
 
@@ -26,17 +28,18 @@ pub enum SimulationStatus {
 }
 
 #[derive(Component)]
-pub struct PhsicaSimulationScheduler {
+pub struct PhsicaSimulationScheduler<T, V: PhysicalSimulation<T>> {
     // iteration cnt
     pub iteration_cnt: u64,
     pub last_elapsed: Duration,
     pub status: SimulationStatus,
-    pub simulation_data: SimulationData,
-    pub sender: SimulationResultSender,
-    pub receiver: SimulationResultReceiver,
+    pub simulation_data: T,
+    pub sender: SimulationResultSender<T>,
+    pub receiver: SimulationResultReceiver<T>,
+    _phantom_v: PhantomData<V>,
 }
 
-impl PhsicaSimulationScheduler {
+impl<T: Clone + Send + 'static, V: PhysicalSimulation<T>> PhsicaSimulationScheduler<T, V> {
     pub fn spawn_simulation(&mut self) {
         let thread_pool = AsyncComputeTaskPool::get();
         let data = self.simulation_data.clone();
@@ -52,7 +55,7 @@ impl PhsicaSimulationScheduler {
                 let start_ts = Instant::now();
                 // let start_ts = instant::now();
 
-                simulate(&mut task_interface);
+                V::simulate(&mut task_interface);
 
                 let elapsed = start_ts.elapsed();
 
@@ -70,7 +73,7 @@ impl PhsicaSimulationScheduler {
         mut materials: ResMut<Assets<StandardMaterial>>,
         with_start: bool,
     ) {
-        init_simulation(self, commands, meshes, materials);
+        V::init_simulation(commands, meshes, materials);
         if with_start {
             self.spawn_simulation();
 
@@ -102,7 +105,9 @@ impl PhsicaSimulationScheduler {
     }
 }
 
-pub fn setup_scheduler(mut commands: Commands) {
+pub fn setup_scheduler<T: Default + Send + Sync + 'static, V: PhysicalSimulation<T> + Bundle>(
+    mut commands: Commands,
+) {
     // create our UI root node
     // this is the wrapper/container for the text
     let (sender, receiver) = init_simulation_channel();
@@ -110,13 +115,20 @@ pub fn setup_scheduler(mut commands: Commands) {
         iteration_cnt: 0,
         last_elapsed: Default::default(),
         status: SimulationStatus::Stopped,
-        simulation_data: SimulationData::default(),
+        simulation_data: <T as Default>::default(),
         sender: SimulationResultSender(sender),
         receiver: SimulationResultReceiver(receiver),
+        _phantom_v: PhantomData::<V>,
     },));
 }
 
-pub fn schedule_simulation(mut commands: Commands, mut q: Query<&mut PhsicaSimulationScheduler>) {
+pub fn schedule_simulation<
+    T: Clone + Send + Sync + 'static,
+    V: PhysicalSimulation<T> + Send + Sync + 'static,
+>(
+    mut commands: Commands,
+    mut q: Query<&mut PhsicaSimulationScheduler<T, V>>,
+) {
     let mut scheduler = q.single_mut();
     let _ = scheduler.receiver.0.try_recv().map(|task_interface| {
         if scheduler.status == SimulationStatus::Stopped {

@@ -1,12 +1,13 @@
-mod on_screen_fps;
-mod physic_simulation;
-mod web_fullscreen;
+mod my_rt_hair;
+mod plugins;
+mod utils;
 
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use on_screen_fps::OnScreenFpsPlugin;
-use physic_simulation::PhysicSimulationPlugin;
-use web_fullscreen::FullViewportPlugin;
+
+use my_rt_hair::RTHairSimulationPlugin;
+use plugins::{on_screen_fps::OnScreenFpsPlugin, web_fullscreen::FullViewportPlugin};
+use utils::instanced_mesh::CustomMaterialPlugin;
 
 fn main() {
     App::new()
@@ -15,7 +16,8 @@ fn main() {
             PanOrbitCameraPlugin,
             FullViewportPlugin,
             OnScreenFpsPlugin,
-            PhysicSimulationPlugin,
+            RTHairSimulationPlugin,
+            // CustomMaterialPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
