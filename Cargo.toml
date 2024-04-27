@@ -16,6 +16,7 @@ opt-level = 3
 [dependencies]
 bevy = { version = "0.13.2" }
 bevy_panorbit_camera = "0.17.0"
+bytemuck = "1.15.0"
 crossbeam-channel = "0.5.12"
 gloo-events = "0.2.0"
 instant = { version = "0.1.12", features = ["wasm-bindgen", "inaccurate"] }

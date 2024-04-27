@@ -1,12 +1,10 @@
-mod on_screen_fps;
 mod physic_simulation;
-mod web_fullscreen;
+mod plugins;
 
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use on_screen_fps::OnScreenFpsPlugin;
 use physic_simulation::PhysicSimulationPlugin;
-use web_fullscreen::FullViewportPlugin;
+use plugins::{on_screen_fps::OnScreenFpsPlugin, web_fullscreen::FullViewportPlugin};
 
 fn main() {
     App::new()
