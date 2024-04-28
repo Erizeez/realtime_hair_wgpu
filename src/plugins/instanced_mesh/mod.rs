@@ -74,7 +74,7 @@ impl Plugin for CustomMaterialPlugin {
     }
 }
 
-#[derive(Clone, Copy, Pod, Zeroable)]
+#[derive(Clone, Copy, Pod, Zeroable, Debug)]
 #[repr(C)]
 pub struct InstanceData {
     pub position: Vec3,

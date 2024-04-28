@@ -1,9 +1,7 @@
 mod communication;
-mod data;
 mod display;
-mod pipeline;
-mod scheduler;
-mod simulation;
+pub mod interfaces;
+pub mod scheduler;
 
 use bevy::{
     app::{App, Plugin, Startup, Update},
@@ -52,7 +50,7 @@ fn simulation_toggle(
         }
     } else if kbd.just_pressed(KeyCode::Escape) {
         let mut scheduler = q.single_mut();
-        scheduler.stop_scheduler();
+        scheduler.stop_scheduler(&mut commands, meshes);
     } else if kbd.just_pressed(KeyCode::KeyN) {
         let mut scheduler = q.single_mut();
         if scheduler.status == SimulationStatus::Running {

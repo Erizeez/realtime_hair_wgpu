@@ -1,20 +1,25 @@
+use crate::hair_simulation::data::SimulationData;
+use crate::hair_simulation::simulation::{
+    do_apply, do_simulate, init_simulation, reset_simulation,
+};
+
 use super::communication::{
     init_simulation_channel, SimulationResultReceiver, SimulationResultSender,
 };
-use super::data::*;
-use super::simulation::*;
+use super::interfaces::*;
 
+use bevy::ecs::entity::Entity;
 use bevy::tasks::AsyncComputeTaskPool;
+use bevy::utils::HashMap;
 use bevy::{
     asset::Assets,
     ecs::{
         component::Component,
-        system::{CommandQueue, Commands, Query, ResMut},
+        system::{Commands, Query, ResMut},
     },
     log::info,
     pbr::StandardMaterial,
     render::mesh::Mesh,
-    tasks::Task,
 };
 use instant::{Duration, Instant};
 
@@ -31,9 +36,11 @@ pub struct PhsicaSimulationScheduler {
     pub iteration_cnt: u64,
     pub last_elapsed: Duration,
     pub status: SimulationStatus,
+    pub entities: HashMap<String, Entity>,
     pub simulation_data: SimulationData,
     pub sender: SimulationResultSender,
     pub receiver: SimulationResultReceiver,
+    pub is_dirty: bool,
 }
 
 impl PhsicaSimulationScheduler {
@@ -52,7 +59,7 @@ impl PhsicaSimulationScheduler {
                 let start_ts = Instant::now();
                 // let start_ts = instant::now();
 
-                simulate(&mut task_interface);
+                do_simulate(&mut task_interface);
 
                 let elapsed = start_ts.elapsed();
 
@@ -94,10 +101,18 @@ impl PhsicaSimulationScheduler {
         self.status = SimulationStatus::Paused;
         info!("parse_scheduler");
     }
-    pub fn stop_scheduler(&mut self) {
+    pub fn stop_scheduler(
+        &mut self,
+        mut commands: &mut Commands,
+        mut meshes: ResMut<Assets<Mesh>>,
+    ) {
         self.status = SimulationStatus::Stopped;
         self.iteration_cnt = 0;
         self.last_elapsed = Default::default();
+
+        // Do some cleanup
+        reset_simulation(self, commands, meshes);
+
         info!("stop_scheduler");
     }
 }
@@ -110,9 +125,11 @@ pub fn setup_scheduler(mut commands: Commands) {
         iteration_cnt: 0,
         last_elapsed: Default::default(),
         status: SimulationStatus::Stopped,
+        entities: HashMap::new(),
         simulation_data: SimulationData::default(),
         sender: SimulationResultSender(sender),
         receiver: SimulationResultReceiver(receiver),
+        is_dirty: false,
     },));
 }
 
@@ -128,6 +145,7 @@ pub fn schedule_simulation(mut commands: Commands, mut q: Query<&mut PhsicaSimul
         info!("elapsed: {:?}", task_interface.elapsed);
         scheduler.iteration_cnt += 1;
         scheduler.last_elapsed = task_interface.elapsed;
+        scheduler.is_dirty = true;
 
         // TODO: update the simulation data to the world
 

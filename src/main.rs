@@ -1,8 +1,10 @@
+mod hair_simulation;
 mod physic_simulation;
 mod plugins;
 
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use hair_simulation::HairSimulationPlugin;
 use physic_simulation::PhysicSimulationPlugin;
 use plugins::{
     instanced_mesh::CustomMaterialPlugin, on_screen_fps::OnScreenFpsPlugin,
@@ -18,6 +20,7 @@ fn main() {
             OnScreenFpsPlugin,
             PhysicSimulationPlugin,
             CustomMaterialPlugin,
+            HairSimulationPlugin,
         ))
         .add_systems(Startup, setup)
         .run();

@@ -1,6 +1,6 @@
 use crossbeam_channel::{Receiver, Sender};
 
-use super::data::SimulationTaskInterface;
+use super::interfaces::SimulationTaskInterface;
 
 pub fn init_simulation_channel() -> (
     Sender<SimulationTaskInterface>,
