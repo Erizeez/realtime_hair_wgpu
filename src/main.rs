@@ -4,7 +4,10 @@ mod plugins;
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use physic_simulation::PhysicSimulationPlugin;
-use plugins::{on_screen_fps::OnScreenFpsPlugin, web_fullscreen::FullViewportPlugin};
+use plugins::{
+    instanced_mesh::CustomMaterialPlugin, on_screen_fps::OnScreenFpsPlugin,
+    web_fullscreen::FullViewportPlugin,
+};
 
 fn main() {
     App::new()
@@ -14,6 +17,7 @@ fn main() {
             FullViewportPlugin,
             OnScreenFpsPlugin,
             PhysicSimulationPlugin,
+            CustomMaterialPlugin,
         ))
         .add_systems(Startup, setup)
         .run();
