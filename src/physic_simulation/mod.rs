@@ -34,8 +34,8 @@ impl Plugin for PhysicSimulationPlugin {
 
 fn simulation_toggle(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<StandardMaterial>>,
     mut q: Query<&mut PhsicaSimulationScheduler>,
     kbd: Res<ButtonInput<KeyCode>>,
 ) {

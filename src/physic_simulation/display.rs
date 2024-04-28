@@ -1,9 +1,7 @@
 use bevy::{
-    app::{App, Plugin, Startup},
     ecs::{
         component::Component,
         query::With,
-        schedule,
         system::{Commands, Query},
     },
     hierarchy::BuildChildren,

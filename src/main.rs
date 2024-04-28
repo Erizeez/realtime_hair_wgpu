@@ -32,12 +32,24 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Camera
+    let camera_position = Transform {
+        translation: Vec3::new(5.0, 5.0, 5.0),
+        ..default()
+    };
+
+    let camera_target = Vec3::new(0.0, 2.0, 0.0);
+    let camera_up = Vec3::new(0.0, 1.0, 0.0);
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 1.5, 5.0)),
+            transform: camera_position.looking_at(camera_target, camera_up),
             ..default()
         },
-        PanOrbitCamera::default(),
+        PanOrbitCamera {
+            focus: camera_target,
+            radius: Some(3.0),
+
+            ..Default::default()
+        },
     ));
 
     // ambient light

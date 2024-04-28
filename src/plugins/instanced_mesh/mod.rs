@@ -18,26 +18,11 @@ use bevy::{
         },
         render_resource::*,
         renderer::RenderDevice,
-        view::{ExtractedView, NoFrustumCulling},
+        view::ExtractedView,
         Render, RenderApp, RenderSet,
     },
 };
 use bytemuck::{Pod, Zeroable};
-
-fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, CustomMaterialPlugin))
-        .add_systems(Startup, setup)
-        .run();
-}
-
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
-}
 
 #[derive(Component, Deref)]
 pub struct InstanceMaterialData(pub Vec<InstanceData>);
@@ -77,8 +62,9 @@ impl Plugin for CustomMaterialPlugin {
 #[derive(Clone, Copy, Pod, Zeroable, Debug)]
 #[repr(C)]
 pub struct InstanceData {
-    pub position: Vec3,
-    pub scale: f32,
+    pub rotation: [f32; 4],
+    pub translation: [f32; 3],
+    pub scale: [f32; 3],
     pub color: [f32; 4],
 }
 
@@ -190,9 +176,19 @@ impl SpecializedMeshPipeline for CustomPipeline {
                     shader_location: 3, // shader locations 0-2 are taken up by Position, Normal and UV attributes
                 },
                 VertexAttribute {
-                    format: VertexFormat::Float32x4,
+                    format: VertexFormat::Float32x3,
                     offset: VertexFormat::Float32x4.size(),
-                    shader_location: 4,
+                    shader_location: 4, // shader locations 0-2 are taken up by Position, Normal and UV attributes
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: VertexFormat::Float32x4.size() + VertexFormat::Float32x3.size(),
+                    shader_location: 5, // shader locations 0-2 are taken up by Position, Normal and UV attributes
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: VertexFormat::Float32x4.size() + VertexFormat::Float32x3.size() * 2,
+                    shader_location: 6,
                 },
             ],
         });

@@ -13,6 +13,9 @@ pub mod simulation;
 #[derive(Component)]
 pub struct HairsMarker;
 
+#[derive(Component)]
+pub struct HeadMarker;
+
 pub struct HairSimulationPlugin;
 
 impl Plugin for HairSimulationPlugin {
@@ -20,3 +23,6 @@ impl Plugin for HairSimulationPlugin {
         app.add_systems(Update, do_apply);
     }
 }
+
+const HAIR_THICKNESS: f32 = 0.001;
+const HAIR_SEG_LENGTH: f32 = 0.1;

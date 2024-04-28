@@ -1,7 +1,5 @@
 use crate::hair_simulation::data::SimulationData;
-use crate::hair_simulation::simulation::{
-    do_apply, do_simulate, init_simulation, reset_simulation,
-};
+use crate::hair_simulation::simulation::{do_simulate, init_simulation, reset_simulation};
 
 use super::communication::{
     init_simulation_channel, SimulationResultReceiver, SimulationResultSender,
@@ -72,9 +70,9 @@ impl PhsicaSimulationScheduler {
 
     pub fn init_scheduler(
         &mut self,
-        mut commands: &mut Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
+        commands: &mut Commands,
+        meshes: ResMut<Assets<Mesh>>,
+        materials: ResMut<Assets<StandardMaterial>>,
         with_start: bool,
     ) {
         init_simulation(self, commands, meshes, materials);
@@ -101,11 +99,7 @@ impl PhsicaSimulationScheduler {
         self.status = SimulationStatus::Paused;
         info!("parse_scheduler");
     }
-    pub fn stop_scheduler(
-        &mut self,
-        mut commands: &mut Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-    ) {
+    pub fn stop_scheduler(&mut self, commands: &mut Commands, meshes: ResMut<Assets<Mesh>>) {
         self.status = SimulationStatus::Stopped;
         self.iteration_cnt = 0;
         self.last_elapsed = Default::default();
@@ -133,7 +127,7 @@ pub fn setup_scheduler(mut commands: Commands) {
     },));
 }
 
-pub fn schedule_simulation(mut commands: Commands, mut q: Query<&mut PhsicaSimulationScheduler>) {
+pub fn schedule_simulation(commands: Commands, mut q: Query<&mut PhsicaSimulationScheduler>) {
     let mut scheduler = q.single_mut();
     let _ = scheduler.receiver.0.try_recv().map(|task_interface| {
         if scheduler.status == SimulationStatus::Stopped {
