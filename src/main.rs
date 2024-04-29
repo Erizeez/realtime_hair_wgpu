@@ -58,29 +58,6 @@ fn setup(
         brightness: 100.0,
     });
 
-    // spawn light
-    // commands
-    //     .spawn(PointLightBundle {
-    //         point_light: PointLight {
-    //             shadows_enabled: true,
-    //             intensity: 10_000_000.0,
-    //             ..default()
-    //         },
-    //         transform: Transform::from_xyz(0., 8., 0.),
-    //         ..default()
-    //     })
-    //     .with_children(|builder| {
-    //         builder.spawn(PbrBundle {
-    //             mesh: meshes.add(Sphere::new(0.1).mesh().uv(32, 18)),
-    //             material: materials.add(StandardMaterial {
-    //                 base_color: Color::WHITE,
-    //                 emissive: Color::rgba_linear(10.0, 10.0, 10.0, 0.0),
-    //                 ..default()
-    //             }),
-    //             ..default()
-    //         });
-    //     });
-
     // directional light
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
