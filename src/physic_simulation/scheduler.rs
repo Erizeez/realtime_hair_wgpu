@@ -1,5 +1,6 @@
+use crate::hair_simulation::conversion::{init_simulation, reset_simulation};
 use crate::hair_simulation::data::SimulationData;
-use crate::hair_simulation::simulation::{do_simulate, init_simulation, reset_simulation};
+use crate::hair_simulation::simulation::do_simulate;
 
 use super::communication::{
     init_simulation_channel, SimulationResultReceiver, SimulationResultSender,
@@ -47,6 +48,7 @@ impl PhsicaSimulationScheduler {
         let data = self.simulation_data.clone();
 
         let mut task_interface = SimulationTaskInterface {
+            iteration_cnt: self.iteration_cnt,
             data,
             elapsed: Default::default(),
         };

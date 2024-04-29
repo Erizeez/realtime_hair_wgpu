@@ -12,11 +12,21 @@ use super::HAIR_SEG_LENGTH;
 //  Add anything necessary during the simulation HERE.
 #[derive(Default, Clone)]
 pub struct SimulationData {
+    pub head: Head,
     pub hairs: Vec<HairStrand>,
+}
+
+#[derive(Clone, Default)]
+pub struct Head {
+    pub position: Vec3,
+    pub radius: f32,
+    pub rotation: Quat,
+    pub attachments: Vec<Vec3>,
 }
 
 #[derive(Clone)]
 pub struct HairStrand {
+    pub attachment: usize,
     pub mass: Vec<f32>,
     pub position: Vec<Vec3>,
     pub velocity: Vec<Vec3>,
@@ -27,7 +37,7 @@ pub struct HairStrand {
 impl HairStrand {
     pub fn to_instance_data(&self) -> Vec<InstanceData> {
         let mut instance_data = Vec::new();
-        for i in 0..self.num {
+        for i in 0..(self.num - 1) {
             let from_pos = self.position[i as usize];
             let to_pos = self.position[(i + 1) as usize];
 
@@ -40,7 +50,7 @@ impl HairStrand {
                 rotation: strand_rotation.into(),
                 translation: strand_translation.into(),
                 scale: [1.0, strand_length / HAIR_SEG_LENGTH, 1.0],
-                color: [1.0, 0.0, 0.0, 1.0],
+                color: [0.27, 0.1, 0.07, 1.0],
             });
         }
         // info!("instance_data: {:?}", &instance_data);
@@ -69,11 +79,12 @@ pub fn generate_straight_hair_strand(
     }
 
     HairStrand {
+        attachment: 0,
         mass: mass_vec,
         position: pos_vec,
         velocity: vel_vec,
         acceleration: acc_vec,
-        num: seg_num,
+        num: seg_num + 1,
     }
 }
 
@@ -84,15 +95,20 @@ pub fn generate_batch_hair_strands(
     group_num: i32,
     length: f32,
     strand_seg_num: i32,
-) -> Vec<HairStrand> {
+) -> SimulationData {
     let mut hair_strands = Vec::new();
+    let mut head = Head {
+        position: center,
+        radius,
+        rotation: Quat::IDENTITY,
+        attachments: Vec::new(),
+    };
 
     let angle_interval = angle / (group_num - 1) as f32;
     let strand_interval = radius * angle_interval as f32;
 
     for i in 0..group_num {
         let group_angle = i as f32 * angle_interval;
-        let group_radius = radius * f32::sin(group_angle) * 2.0 * PI;
         let mut num = (2.0 * PI / strand_interval) as i32;
         if num <= 0 {
             num = 1;
@@ -104,16 +120,19 @@ pub fn generate_batch_hair_strands(
                 center.z + radius * f32::sin(group_angle) * f32::sin(j as f32 * angle_interval),
             );
             let to_strand_pos = from_strand_pos + (from_strand_pos - center).normalize() * length;
-            hair_strands.push(generate_straight_hair_strand(
-                1.0,
-                strand_seg_num,
-                from_strand_pos,
-                to_strand_pos,
-            ));
+            let mut hair_strand =
+                generate_straight_hair_strand(1.0, strand_seg_num, from_strand_pos, to_strand_pos);
+
+            hair_strand.attachment = head.attachments.len();
+            head.attachments.push(from_strand_pos - center);
+            hair_strands.push(hair_strand);
         }
     }
 
     info!("hair_strands: {:?}", &hair_strands.len());
 
-    hair_strands
+    SimulationData {
+        hairs: hair_strands,
+        head,
+    }
 }

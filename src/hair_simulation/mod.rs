@@ -3,8 +3,9 @@ use bevy::{
     ecs::component::Component,
 };
 
-use self::simulation::do_apply;
+use self::conversion::do_apply;
 
+pub mod conversion;
 pub mod data;
 pub mod pipeline;
 pub mod simulation;
