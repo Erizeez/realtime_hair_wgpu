@@ -50,7 +50,7 @@ pub fn init_simulation(
     let handle = meshes.add(Mesh::from(Cuboid::new(1., 1., 1.)));
 
     scheduler.simulation_data.hairs =
-        generate_batch_hair_strands(Vec3::new(0., 2., 0.), 0.1, PI / 4.0, 2, 0.5, 10);
+        generate_batch_hair_strands(Vec3::new(0., 2., 0.), 0.05, PI / 4.0, 10, 0.5, 10);
 
     let hair_data: Vec<InstanceData> = scheduler
         .simulation_data

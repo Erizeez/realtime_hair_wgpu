@@ -27,13 +27,13 @@ pub struct HairStrand {
 impl HairStrand {
     pub fn to_instance_data(&self) -> Vec<InstanceData> {
         let mut instance_data = Vec::new();
-        for i in 0..(self.num - 1) {
+        for i in 0..self.num {
             let from_pos = self.position[i as usize];
             let to_pos = self.position[(i + 1) as usize];
 
             let strand_length = (to_pos - from_pos).length();
             let strand_translation = (from_pos + to_pos) / 2.0;
-            let strand_rotation = Quat::from_rotation_arc(Vec3::Y, (from_pos - to_pos).normalize());
+            let strand_rotation = Quat::from_rotation_arc(Vec3::Y, (to_pos - from_pos).normalize());
             // let strand_rotation = Vec3::new(0.0, 1.0, 0.0);
 
             instance_data.push(InstanceData {
@@ -43,7 +43,7 @@ impl HairStrand {
                 color: [1.0, 0.0, 0.0, 1.0],
             });
         }
-        info!("instance_data: {:?}", &instance_data);
+        // info!("instance_data: {:?}", &instance_data);
         instance_data
     }
 }
@@ -61,7 +61,7 @@ pub fn generate_straight_hair_strand(
 
     let seg_length = (to_pos - from_pos) / seg_num as f32;
 
-    for i in 0..seg_num {
+    for i in 0..(seg_num + 1) {
         mass_vec.push(mass);
         pos_vec.push(from_pos + seg_length * i as f32);
         vel_vec.push(Vec3::ZERO);
@@ -87,7 +87,7 @@ pub fn generate_batch_hair_strands(
 ) -> Vec<HairStrand> {
     let mut hair_strands = Vec::new();
 
-    let angle_interval = angle / group_num as f32;
+    let angle_interval = angle / (group_num - 1) as f32;
     let strand_interval = radius * angle_interval as f32;
 
     for i in 0..group_num {
@@ -99,11 +99,9 @@ pub fn generate_batch_hair_strands(
         }
         for j in 0..num {
             let from_strand_pos = Vec3::new(
-                center.x
-                    + group_radius * f32::sin(group_angle) * f32::cos(j as f32 * angle_interval),
+                center.x + radius * f32::sin(group_angle) * f32::cos(j as f32 * angle_interval),
                 center.y + f32::cos(group_angle) * radius,
-                center.z
-                    + group_radius * f32::sin(group_angle) * f32::sin(j as f32 * angle_interval),
+                center.z + radius * f32::sin(group_angle) * f32::sin(j as f32 * angle_interval),
             );
             let to_strand_pos = from_strand_pos + (from_strand_pos - center).normalize() * length;
             hair_strands.push(generate_straight_hair_strand(
@@ -114,6 +112,8 @@ pub fn generate_batch_hair_strands(
             ));
         }
     }
+
+    info!("hair_strands: {:?}", &hair_strands.len());
 
     hair_strands
 }
