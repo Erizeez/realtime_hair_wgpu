@@ -13,10 +13,10 @@ use super::HAIR_SEG_LENGTH;
 #[derive(Default, Clone)]
 pub struct SimulationData {
     pub head: Head,
-    pub hairs: Vec<HairStrand>,
+    pub hairs: Hairs,
 }
 
-#[derive(Clone, Default)]
+#[derive(Default, Clone)]
 pub struct Head {
     pub position: Vec3,
     pub radius: f32,
@@ -24,22 +24,43 @@ pub struct Head {
     pub attachments: Vec<Vec3>,
 }
 
+#[derive(Default, Clone)]
+pub struct Hairs {
+    pub strands: Vec<HairStrand>,
+    pub youngs: f32,
+    pub shear: f32,
+}
+
+#[derive(Default, Clone)]
+pub struct Frame {
+    pub b: Vec3,
+    pub n: Vec3,
+    pub t: Vec3,
+}
+
 #[derive(Clone)]
 pub struct HairStrand {
+    // Attachment Reference to Head
     pub attachment: usize,
-    pub mass: Vec<f32>,
-    pub position: Vec<Vec3>,
-    pub velocity: Vec<Vec3>,
-    pub acceleration: Vec<Vec3>,
-    pub num: i32,
+
+    // Vertices
+    pub v_num: i32,
+    pub v_mass: Vec<f32>,
+    pub v_position: Vec<Vec3>,
+    pub v_velocity: Vec<Vec3>,
+
+    // Lines
+    pub l_num: i32,
+    pub l_momemtum: Vec<f32>,
+    pub reference_frame: Vec<Frame>,
 }
 
 impl HairStrand {
     pub fn to_instance_data(&self) -> Vec<InstanceData> {
         let mut instance_data = Vec::new();
-        for i in 0..(self.num - 1) {
-            let from_pos = self.position[i as usize];
-            let to_pos = self.position[(i + 1) as usize];
+        for i in 0..(self.v_num - 1) {
+            let from_pos = self.v_position[i as usize];
+            let to_pos = self.v_position[(i + 1) as usize];
 
             let strand_length = (to_pos - from_pos).length();
             let strand_translation = (from_pos + to_pos) / 2.0;
@@ -64,27 +85,46 @@ pub fn generate_straight_hair_strand(
     from_pos: Vec3,
     to_pos: Vec3,
 ) -> HairStrand {
-    let mut mass_vec = Vec::new();
-    let mut pos_vec = Vec::new();
-    let mut vel_vec = Vec::new();
-    let mut acc_vec = Vec::new();
+    let mut v_mass = Vec::new();
+    let mut v_position = Vec::new();
+    let mut v_velocity = Vec::new();
+    let mut l_momemtum = Vec::new();
+    let mut reference_frame = Vec::new();
 
     let seg_length = (to_pos - from_pos) / seg_num as f32;
 
     for i in 0..(seg_num + 1) {
-        mass_vec.push(mass);
-        pos_vec.push(from_pos + seg_length * i as f32);
-        vel_vec.push(Vec3::ZERO);
-        acc_vec.push(Vec3::ZERO);
+        v_mass.push(mass);
+        v_position.push(from_pos + seg_length * i as f32);
+        v_velocity.push(Vec3::ZERO);
+    }
+
+    for i in 0..seg_num {
+        l_momemtum.push(0.1);
+
+        // Initialize reference frames
+        let e = v_position[(i + 1) as usize] - v_position[i as usize];
+        let t = e.normalize();
+        if i == 0 {
+            let b = t.cross(Vec3::Y).normalize();
+            let n = t.cross(b).normalize();
+            reference_frame.push(Frame { b, n, t })
+        } else {
+            let b = reference_frame[i as usize - 1].n.cross(e).normalize();
+            let n = t.cross(b).normalize();
+            reference_frame.push(Frame { b, n, t })
+        }
     }
 
     HairStrand {
         attachment: 0,
-        mass: mass_vec,
-        position: pos_vec,
-        velocity: vel_vec,
-        acceleration: acc_vec,
-        num: seg_num + 1,
+        v_num: seg_num + 1,
+        v_mass,
+        v_position,
+        v_velocity,
+        l_num: seg_num,
+        l_momemtum,
+        reference_frame,
     }
 }
 
@@ -121,7 +161,7 @@ pub fn generate_batch_hair_strands(
             );
             let to_strand_pos = from_strand_pos + (from_strand_pos - center).normalize() * length;
             let mut hair_strand =
-                generate_straight_hair_strand(1.0, strand_seg_num, from_strand_pos, to_strand_pos);
+                generate_straight_hair_strand(0.01, strand_seg_num, from_strand_pos, to_strand_pos);
 
             hair_strand.attachment = head.attachments.len();
             head.attachments.push(from_strand_pos - center);
@@ -132,7 +172,11 @@ pub fn generate_batch_hair_strands(
     info!("hair_strands: {:?}", &hair_strands.len());
 
     SimulationData {
-        hairs: hair_strands,
+        hairs: Hairs {
+            strands: hair_strands,
+            youngs: 3000000000.0,
+            shear: 1000000000.0,
+        },
         head,
     }
 }

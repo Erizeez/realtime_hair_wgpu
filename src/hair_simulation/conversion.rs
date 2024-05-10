@@ -33,7 +33,7 @@ pub fn reset_simulation(
         commands.entity(*entity).despawn();
     }
 
-    scheduler.simulation_data.hairs.clear();
+    scheduler.simulation_data.hairs.strands.clear();
     scheduler.entities.clear();
 }
 
@@ -54,6 +54,7 @@ pub fn init_simulation(
     let hair_data: Vec<InstanceData> = scheduler
         .simulation_data
         .hairs
+        .strands
         .iter()
         .flat_map(|hair| hair.to_instance_data())
         .collect();
@@ -113,6 +114,7 @@ pub fn do_apply(
                         let hair_data: Vec<InstanceData> = scheduler
                             .simulation_data
                             .hairs
+                            .strands
                             .iter()
                             .flat_map(|hair| hair.to_instance_data())
                             .collect();
