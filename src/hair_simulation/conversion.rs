@@ -16,18 +16,19 @@ use bevy::{
 
 use crate::{
     hair_simulation::{
-        data::generate_batch_hair_strands, HeadMarker, HAIR_SEG_LENGTH, HAIR_THICKNESS,
+        data::{convert_to_na_vec3, generate_batch_hair_strands},
+        HeadMarker, HAIR_SEG_LENGTH, HAIR_THICKNESS,
     },
     physic_simulation::scheduler::PhsicaSimulationScheduler,
     plugins::instanced_mesh::{InstanceData, InstanceMaterialData},
 };
 
-use super::HairsMarker;
+use super::{data::convert_to_vec3, HairsMarker};
 
 pub fn reset_simulation(
     scheduler: &mut PhsicaSimulationScheduler,
     commands: &mut Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
 ) {
     for (_, entity) in scheduler.entities.iter() {
         commands.entity(*entity).despawn();
@@ -48,8 +49,14 @@ pub fn init_simulation(
     let head_position = Vec3::new(0., 2., 0.);
     let head_radius = 0.1;
 
-    scheduler.simulation_data =
-        generate_batch_hair_strands(head_position.clone(), head_radius, PI / 4.0, 10, 0.5, 10);
+    scheduler.simulation_data = generate_batch_hair_strands(
+        convert_to_na_vec3(head_position.clone()),
+        head_radius,
+        PI / 4.0,
+        10,
+        0.5,
+        10,
+    );
 
     let hair_data: Vec<InstanceData> = scheduler
         .simulation_data
@@ -101,7 +108,8 @@ pub fn do_apply(
 
                 match head_query.get_single_mut() {
                     Ok((_, mut head_transform)) => {
-                        head_transform.translation = scheduler.simulation_data.head.position;
+                        head_transform.translation =
+                            convert_to_vec3(scheduler.simulation_data.head.position);
                         head_transform.rotation = scheduler.simulation_data.head.rotation;
                     }
                     Err(_) => {

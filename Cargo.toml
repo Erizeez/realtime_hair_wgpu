@@ -21,3 +21,4 @@ crossbeam-channel = "0.5.12"
 gloo-events = "0.2.0"
 instant = { version = "0.1.12", features = ["wasm-bindgen", "inaccurate"] }
 web-sys = { version = "0.3.69", features = ["Element", "Document", "Window"] }
+nalgebra = "*"

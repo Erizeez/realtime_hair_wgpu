@@ -1,6 +1,5 @@
 use bevy::{
     asset::{AssetServer, Assets},
-    core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         query::{Changed, With},
         system::{Commands, Query, Res, ResMut},
@@ -39,7 +38,7 @@ pub fn keyboard_control(
         }
     } else if kbd.just_pressed(KeyCode::Escape) {
         let mut scheduler = q.single_mut();
-        scheduler.stop_scheduler(&mut commands, meshes);
+        scheduler.stop_scheduler(&mut commands);
     } else if kbd.just_pressed(KeyCode::KeyN) {
         let mut scheduler = q.single_mut();
         if scheduler.status == SimulationStatus::Running {

@@ -1,7 +1,4 @@
-use bevy::{
-    log::info,
-    math::{Quat, Vec3},
-};
+use bevy::log::info;
 
 use crate::{
     hair_simulation::pipeline::der::do_der, physic_simulation::interfaces::SimulationTaskInterface,

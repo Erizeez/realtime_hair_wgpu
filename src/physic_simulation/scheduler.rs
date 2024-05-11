@@ -101,13 +101,13 @@ impl PhsicaSimulationScheduler {
         self.status = SimulationStatus::Paused;
         info!("parse_scheduler");
     }
-    pub fn stop_scheduler(&mut self, commands: &mut Commands, meshes: ResMut<Assets<Mesh>>) {
+    pub fn stop_scheduler(&mut self, commands: &mut Commands) {
         self.status = SimulationStatus::Stopped;
         self.iteration_cnt = 0;
         self.last_elapsed = Default::default();
 
         // Do some cleanup
-        reset_simulation(self, commands, meshes);
+        reset_simulation(self, commands);
 
         info!("stop_scheduler");
     }
@@ -129,7 +129,7 @@ pub fn setup_scheduler(mut commands: Commands) {
     },));
 }
 
-pub fn schedule_simulation(commands: Commands, mut q: Query<&mut PhsicaSimulationScheduler>) {
+pub fn schedule_simulation(mut q: Query<&mut PhsicaSimulationScheduler>) {
     let mut scheduler = q.single_mut();
     let _ = scheduler.receiver.0.try_recv().map(|task_interface| {
         if scheduler.status == SimulationStatus::Stopped {
