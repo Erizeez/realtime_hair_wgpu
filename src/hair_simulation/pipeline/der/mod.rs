@@ -4,6 +4,8 @@ pub mod utils;
 extern crate nalgebra as na;
 use std::f32::consts::PI;
 
+use bevy::log::info;
+
 use crate::{
     hair_simulation::{data::Frame, pipeline::der::utils::partial_kappa},
     physic_simulation::interfaces::SimulationTaskInterface,
@@ -351,6 +353,43 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         // Apply twist
 
+        info!("{:?}", force);
+        // Apply gravity
+        for i in 0..(strand.v_num as usize) {
+            force[(i * 3) as usize] = force[(i * 3) as usize] + 0.0;
+            force[(i * 3 + 1) as usize] = force[(i * 3 + 1) as usize] + -9.8;
+            force[(i * 3 + 2) as usize] = force[(i * 3 + 2) as usize] + 0.0;
+        }
+
         // Update strand states
+        for i in 1..(strand.v_num as usize) {
+            let mut v = na::Vector3::zeros();
+            v[0] = strand.v_velocity[i].x;
+            v[1] = strand.v_velocity[i].y;
+            v[2] = strand.v_velocity[i].z;
+
+            let mut f = na::Vector3::zeros();
+            f[0] = force[(i * 3) as usize];
+            f[1] = force[(i * 3 + 1) as usize];
+            f[2] = force[(i * 3 + 2) as usize];
+
+            let mut p = na::Vector3::zeros();
+            p[0] = strand.v_position[i].x;
+            p[1] = strand.v_position[i].y;
+            p[2] = strand.v_position[i].z;
+
+            let mut a = f / strand.v_mass[i];
+
+            let mut v_new = v + a * task_interface.delta_time;
+            let mut p_new = p + v_new * task_interface.delta_time;
+
+            strand.v_velocity[i].x = v_new[0];
+            strand.v_velocity[i].y = v_new[1];
+            strand.v_velocity[i].z = v_new[2];
+
+            strand.v_position[i].x = p_new[0];
+            strand.v_position[i].y = p_new[1];
+            strand.v_position[i].z = p_new[2];
+        }
     }
 }
