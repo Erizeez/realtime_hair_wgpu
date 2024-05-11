@@ -3,6 +3,7 @@ use std::f32::consts::PI;
 use bevy::{
     log::info,
     math::{Quat, Vec3},
+    utils::info,
 };
 
 use crate::plugins::instanced_mesh::InstanceData;
@@ -190,15 +191,16 @@ pub fn generate_batch_hair_strands(
 
     for i in 0..group_num {
         let group_angle = i as f32 * angle_interval;
-        let mut num = (2.0 * PI / strand_interval) as i32;
+        let mut num: i32 = (2.0 * PI * radius * f32::sin(group_angle) / strand_interval) as i32;
         if num <= 0 {
             num = 1;
         }
+        let new_angle_interval = 2.0 * PI / num as f32;
         for j in 0..num {
             let from_strand_pos = na::Vector3::<f32>::new(
-                center.x + radius * f32::sin(group_angle) * f32::cos(j as f32 * angle_interval),
+                center.x + radius * f32::sin(group_angle) * f32::cos(j as f32 * new_angle_interval),
                 center.y + f32::cos(group_angle) * radius,
-                center.z + radius * f32::sin(group_angle) * f32::sin(j as f32 * angle_interval),
+                center.z + radius * f32::sin(group_angle) * f32::sin(j as f32 * new_angle_interval),
             );
             let to_strand_pos = from_strand_pos + (from_strand_pos - center).normalize() * length;
             let mut hair_strand =
@@ -208,6 +210,7 @@ pub fn generate_batch_hair_strands(
             head.attachments.push(from_strand_pos - center);
             hair_strands.push(hair_strand);
         }
+        info!("num: {:?}", num);
     }
 
     info!("hair_strands: {:?}", &hair_strands.len());

@@ -16,7 +16,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             PanOrbitCameraPlugin,
-            FullViewportPlugin,
+            // FullViewportPlugin,
             OnScreenFpsPlugin,
             PhysicSimulationPlugin,
             CustomMaterialPlugin,

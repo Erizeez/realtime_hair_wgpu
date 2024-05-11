@@ -4,7 +4,11 @@ build:
 
 .PHONY: run
 run:
-	WASM_SERVER_RUNNER_ADDRESS=0.0.0.0 cargo run --target wasm32-unknown-unknown
+	cargo run
+
+.PHONY: run-wasm
+run-wasm:
+	cargo run --target wasm32-unknown-unknown
 
 .PHONY: run-trace
 run-trace:

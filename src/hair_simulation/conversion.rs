@@ -53,7 +53,7 @@ pub fn init_simulation(
         convert_to_na_vec3(head_position.clone()),
         head_radius,
         PI / 4.0,
-        10,
+        30,
         0.5,
         10,
     );
