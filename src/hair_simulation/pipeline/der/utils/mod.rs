@@ -1,3 +1,5 @@
+use bevy::{log::info, utils::info};
+
 use crate::hair_simulation::data::Frame;
 extern crate nalgebra as na;
 
@@ -5,11 +7,18 @@ pub fn parallel_transport(
     t0: na::Vector3<f32>,
     t1: na::Vector3<f32>,
 ) -> (na::Vector3<f32>, na::Vector3<f32>, na::Vector3<f32>) {
-    let b = t0.cross(&t1);
-    let n0 = t0.cross(&b);
+    let mut b = t0.cross(&t1);
+    if b.norm() == 0.0 {
+        b = na::Vector3::new(1.0, 0.0, 0.0);
+    }
+    let n0: na::Matrix<f32, na::Const<3>, na::Const<1>, na::ArrayStorage<f32, 3, 1>> = t0.cross(&b);
     let n1 = t1.cross(&b);
 
-    (b, n0.normalize(), n1.normalize())
+    // info!("n0: {:?}", n0);
+    // info!("n1: {:?}", n1);
+    // info!("b: {:?}", b);
+
+    (b.normalize(), n0.normalize(), n1.normalize())
 }
 
 pub fn partial_kappa(
@@ -28,6 +37,9 @@ pub fn partial_kappa(
     e_index_b: bool,
 ) -> na::Matrix3x1<f32> {
     let kappa_up_index;
+
+    // info!("index: {:?}", index);
+    // info!("kappa: {:?}", kappa);
 
     let e_index;
     let t_index;
@@ -64,5 +76,7 @@ pub fn partial_kappa(
     let latter_part = (2.0 * reference_frame[t_index].t.cross(&m))
         / (1.0 + reference_frame[index - 1].t.dot(&reference_frame[index].t));
 
-    1.0 / e.norm() * (kappa_part + latter_sign as f32 * latter_part)
+    let result = 1.0 / e.norm() * (kappa_part + latter_sign as f32 * latter_part);
+    // info!("result: {:?}", result);
+    result
 }

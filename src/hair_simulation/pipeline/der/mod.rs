@@ -26,8 +26,11 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
             let reference_frame =
                 utils::parallel_transport(strand.reference_frame[i as usize].t, t);
+            // info!("lastFrame: {:?}", strand.reference_frame[i as usize]);
+            // info!("t: {:?}", t);
+            // info!("referenceFrame: {:?}", reference_frame);
             strand.reference_frame[i as usize].b = reference_frame.0;
-            strand.reference_frame[i as usize].n = reference_frame.1;
+            strand.reference_frame[i as usize].n = reference_frame.2;
             strand.reference_frame[i as usize].t = t;
             e_vec.push(e);
         }
@@ -90,6 +93,36 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         let mut force = na::DMatrix::<f32>::zeros(4 * strand.v_num - 1, 1);
         // Apply stretch
+        for i in 1..(strand.v_num as usize - 1) {
+            let f_si = PI
+                * strand.radius.powf(2.0)
+                * strand.youngs
+                * ((length_vec[i] / strand.l_initial_length[i] - 1.0)
+                    * strand.reference_frame[i].t
+                    - (length_vec[i - 1] / strand.l_initial_length[i - 1] - 1.0)
+                        * strand.reference_frame[i - 1].t);
+
+            force[(i * 3) as usize] = force[(i * 3) as usize] + f_si[0];
+            force[(i * 3 + 1) as usize] = force[(i * 3 + 1) as usize] + f_si[1];
+            force[(i * 3 + 2) as usize] = force[(i * 3 + 2) as usize] + f_si[2];
+        }
+
+        let f_s_last = -PI
+            * strand.radius.powf(2.0)
+            * strand.youngs
+            * (length_vec[strand.v_num as usize - 2]
+                / strand.l_initial_length[strand.v_num as usize - 2]
+                - 1.0)
+            * strand.reference_frame[strand.v_num as usize - 2].t;
+
+        force[((strand.v_num - 1) * 3) as usize] =
+            force[((strand.v_num - 1) * 3) as usize] + f_s_last[0];
+        force[((strand.v_num - 1) * 3 + 1) as usize] =
+            force[((strand.v_num - 1) * 3 + 1) as usize] + f_s_last[1];
+        force[((strand.v_num - 1) * 3 + 2) as usize] =
+            force[((strand.v_num - 1) * 3 + 2) as usize] + f_s_last[2];
+
+        info!("{:?}", force);
 
         // Apply bend
         for i in 1..(strand.v_num as usize - 1) {
@@ -353,7 +386,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         // Apply twist
 
-        info!("{:?}", force);
+        // info!("{:?}", force);
         // Apply gravity
         for i in 0..(strand.v_num as usize) {
             force[(i * 3) as usize] = force[(i * 3) as usize] + 0.0;

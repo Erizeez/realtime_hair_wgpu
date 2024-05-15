@@ -30,7 +30,7 @@ pub struct Hairs {
     pub strands: Vec<HairStrand>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Frame {
     pub b: na::Vector3<f32>,
     pub n: na::Vector3<f32>,
@@ -113,7 +113,7 @@ pub fn generate_straight_hair_strand(
 ) -> HairStrand {
     let mut hair_strand = HairStrand {
         attachment: 0,
-        radius: 0.01,
+        radius: 0.001,
         youngs: 3000000000.0,
         shear: 1000000000.0,
         v_num: seg_num + 1,
@@ -196,7 +196,7 @@ pub fn generate_batch_hair_strands(
             num = 1;
         }
         let new_angle_interval = 2.0 * PI / num as f32;
-        for j in 0..num {
+        for j in 1..num {
             let from_strand_pos = na::Vector3::<f32>::new(
                 center.x + radius * f32::sin(group_angle) * f32::cos(j as f32 * new_angle_interval),
                 center.y + f32::cos(group_angle) * radius,
