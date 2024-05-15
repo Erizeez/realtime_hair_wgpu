@@ -225,9 +225,8 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             let a = f / strand.v_mass[i];
 
             let v_new = v + a * task_interface.delta_time;
-            let p_new = p
-                + v_new * task_interface.delta_time
-                + 0.5 * a * task_interface.delta_time.powf(2.0);
+            let p_new =
+                p + v * task_interface.delta_time + 0.5 * a * task_interface.delta_time.powf(2.0);
 
             strand.v_velocity[i].x = v_new[0];
             strand.v_velocity[i].y = v_new[1];
