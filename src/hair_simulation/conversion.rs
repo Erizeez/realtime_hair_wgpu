@@ -8,7 +8,7 @@ use bevy::{
         primitives::{Cylinder, Sphere},
         Vec3,
     },
-    pbr::{PbrBundle, StandardMaterial},
+    pbr::{AlphaMode, PbrBundle, StandardMaterial},
     prelude::SpatialBundle,
     render::{color::Color, mesh::Mesh, view::NoFrustumCulling},
     transform::components::Transform,
@@ -53,7 +53,7 @@ pub fn init_simulation(
         convert_to_na_vec3(head_position.clone()),
         head_radius,
         PI / 4.0,
-        6,
+        3,
         0.5,
         20,
     );
@@ -85,7 +85,8 @@ pub fn init_simulation(
             .spawn(PbrBundle {
                 mesh: meshes.add(Sphere::new(head_radius)),
                 material: materials.add(StandardMaterial {
-                    base_color: Color::rgb(1.0, 0.8, 0.6),
+                    base_color: Color::rgba(1.0, 0.8, 0.6, 0.0),
+                    alpha_mode: AlphaMode::Mask(0.5),
                     ..Default::default()
                 }),
                 transform: Transform::from_translation(head_position),

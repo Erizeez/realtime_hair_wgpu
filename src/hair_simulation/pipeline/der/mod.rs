@@ -7,7 +7,12 @@ use std::f32::consts::PI;
 use bevy::log::info;
 
 use crate::{
-    hair_simulation::{data::Frame, pipeline::der::utils::partial_kappa},
+    hair_simulation::{
+        data::Frame,
+        pipeline::der::utils::{
+            calc_nabla_i_kappa_i, calc_nabla_i_kappa_i1, calc_nabla_i_kappa_i_1, partial_kappa,
+        },
+    },
     physic_simulation::interfaces::SimulationTaskInterface,
 };
 
@@ -89,6 +94,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             for i in 0..(strand.v_num as usize - 1) {
                 strand.l_initial_kappa.push(kappa[i]);
             }
+            info!("kappa initialized");
         }
 
         let mut force = na::DMatrix::<f32>::zeros(4 * strand.v_num - 1, 1);
@@ -122,8 +128,6 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         force[((strand.v_num - 1) * 3 + 2) as usize] =
             force[((strand.v_num - 1) * 3 + 2) as usize] + f_s_last[2];
 
-        info!("{:?}", force);
-
         // Apply bend
         for i in 1..(strand.v_num as usize - 1) {
             let t_tilde = (strand.reference_frame[i - 1].t + strand.reference_frame[i].t)
@@ -136,253 +140,60 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             let mut nabla_i_kappa_i = na::Matrix3x4::<f32>::zeros();
             let mut nabla_i_kappa_i1 = na::Matrix3x4::<f32>::zeros();
 
-            let mut f_sum = na::Matrix3x1::<f32>::zeros();
+            let mut kappa_part = na::Matrix3x1::<f32>::zeros();
 
             if i - 1 > 1 {
-                nabla_i_kappa_i_1.set_column(
-                    0,
-                    &partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i - 1,
-                        true,
-                        true,
-                        false,
-                    ),
+                nabla_i_kappa_i_1 = calc_nabla_i_kappa_i_1(
+                    &e_vec,
+                    &t_tilde,
+                    &kappa,
+                    &strand.reference_frame,
+                    &material_frame,
+                    i - 1,
                 );
 
-                nabla_i_kappa_i_1.set_column(
-                    1,
-                    &partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i - 1,
-                        false,
-                        true,
-                        false,
-                    ),
-                );
-
-                nabla_i_kappa_i_1.set_column(
-                    2,
-                    &partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i - 1,
-                        true,
-                        false,
-                        false,
-                    ),
-                );
-
-                nabla_i_kappa_i_1.set_column(
-                    3,
-                    &partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i - 1,
-                        false,
-                        false,
-                        false,
-                    ),
-                );
-
-                f_sum = f_sum
-                    + -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 / length_vec[i - 1]
-                        * nabla_i_kappa_i_1
-                        * (kappa[i - 1] - strand.l_initial_kappa[i - 1]);
+                kappa_part = kappa_part
+                    + nabla_i_kappa_i_1 * (kappa[i - 1] - strand.l_initial_kappa[i - 1])
+                        / length_vec[i - 1];
             }
 
             {
-                nabla_i_kappa_i.set_column(
-                    0,
-                    &(partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        true,
-                        true,
-                        true,
-                    ) - partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        true,
-                        true,
-                        false,
-                    )),
+                nabla_i_kappa_i = calc_nabla_i_kappa_i(
+                    &e_vec,
+                    &t_tilde,
+                    &kappa,
+                    &strand.reference_frame,
+                    &material_frame,
+                    i,
                 );
 
-                nabla_i_kappa_i.set_column(
-                    1,
-                    &(partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        false,
-                        true,
-                        true,
-                    ) - partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        false,
-                        true,
-                        false,
-                    )),
-                );
-
-                nabla_i_kappa_i.set_column(
-                    2,
-                    &(partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        true,
-                        false,
-                        true,
-                    ) - partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        true,
-                        false,
-                        false,
-                    )),
-                );
-
-                nabla_i_kappa_i.set_column(
-                    3,
-                    &(partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        false,
-                        false,
-                        true,
-                    ) - partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i,
-                        false,
-                        false,
-                        false,
-                    )),
-                );
-
-                f_sum = f_sum
-                    + -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 / length_vec[i]
-                        * nabla_i_kappa_i
-                        * (kappa[i] - strand.l_initial_kappa[i]);
+                kappa_part = kappa_part
+                    + nabla_i_kappa_i * (kappa[i] - strand.l_initial_kappa[i]) / length_vec[i];
             }
 
             if i + 1 < strand.v_num as usize - 1 {
-                nabla_i_kappa_i1.set_column(
-                    0,
-                    &-partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i + 1,
-                        true,
-                        true,
-                        true,
-                    ),
+                nabla_i_kappa_i1 = calc_nabla_i_kappa_i1(
+                    &e_vec,
+                    &t_tilde,
+                    &kappa,
+                    &strand.reference_frame,
+                    &material_frame,
+                    i + 1,
                 );
 
-                nabla_i_kappa_i1.set_column(
-                    1,
-                    &-partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i + 1,
-                        false,
-                        true,
-                        true,
-                    ),
-                );
-
-                nabla_i_kappa_i1.set_column(
-                    2,
-                    &-partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i + 1,
-                        true,
-                        false,
-                        true,
-                    ),
-                );
-
-                nabla_i_kappa_i1.set_column(
-                    3,
-                    &-partial_kappa(
-                        &e_vec,
-                        &t_tilde,
-                        &kappa,
-                        &strand.reference_frame,
-                        &material_frame,
-                        i + 1,
-                        false,
-                        false,
-                        true,
-                    ),
-                );
-
-                f_sum = f_sum
-                    + -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 / length_vec[i + 1]
-                        * nabla_i_kappa_i1
-                        * (kappa[i + 1] - strand.l_initial_kappa[i + 1]);
-
-                force[(i * 3) as usize] = f_sum[0];
-                force[(i * 3 + 1) as usize] = f_sum[1];
-                force[(i * 3 + 2) as usize] = f_sum[2];
+                kappa_part = kappa_part
+                    + nabla_i_kappa_i1 * (kappa[i + 1] - strand.l_initial_kappa[i + 1])
+                        / length_vec[i + 1];
             }
+
+            let f_sum = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * kappa_part;
+
+            force[(i * 3) as usize] = f_sum[0];
+            force[(i * 3 + 1) as usize] = f_sum[1];
+            force[(i * 3 + 2) as usize] = f_sum[2];
         }
+
+        // info!("{:?}", force);
 
         // Apply twist
 
