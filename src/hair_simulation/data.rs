@@ -110,12 +110,15 @@ pub fn generate_straight_hair_strand(
     seg_num: usize,
     from_pos: na::Vector3<f32>,
     to_pos: na::Vector3<f32>,
+    youngs: f32,
+    shear: f32,
+    strand_radius: f32,
 ) -> HairStrand {
     let mut hair_strand = HairStrand {
         attachment: 0,
-        radius: 0.001,
-        youngs: 3000000000.0,
-        shear: 1000000000.0,
+        radius: strand_radius,
+        youngs,
+        shear,
         v_num: seg_num + 1,
         v_mass: Vec::new(),
         v_position: Vec::new(),
@@ -177,6 +180,10 @@ pub fn generate_batch_hair_strands(
     group_num: i32,
     length: f32,
     strand_seg_num: usize,
+    youngs: f32,
+    shear: f32,
+    mass: f32,
+    strand_radius: f32,
 ) -> SimulationData {
     let mut hair_strands = Vec::new();
     let mut head = Head {
@@ -188,6 +195,8 @@ pub fn generate_batch_hair_strands(
 
     let angle_interval = angle / (group_num - 1) as f32;
     let strand_interval = radius * angle_interval as f32;
+
+    let mass_per_vertex = mass / (strand_seg_num + 1) as f32;
 
     for i in 0..group_num {
         let group_angle = i as f32 * angle_interval;
@@ -203,8 +212,15 @@ pub fn generate_batch_hair_strands(
                 center.z + radius * f32::sin(group_angle) * f32::sin(j as f32 * new_angle_interval),
             );
             let to_strand_pos = from_strand_pos + (from_strand_pos - center).normalize() * length;
-            let mut hair_strand =
-                generate_straight_hair_strand(0.01, strand_seg_num, from_strand_pos, to_strand_pos);
+            let mut hair_strand = generate_straight_hair_strand(
+                mass_per_vertex,
+                strand_seg_num,
+                from_strand_pos,
+                to_strand_pos,
+                youngs,
+                shear,
+                strand_radius,
+            );
 
             hair_strand.attachment = head.attachments.len();
             head.attachments.push(from_strand_pos - center);

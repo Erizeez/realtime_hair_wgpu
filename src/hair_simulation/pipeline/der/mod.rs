@@ -188,9 +188,9 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
             let f_sum = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * kappa_part;
 
-            force[(i * 3) as usize] = force[(i * 3) as usize] + f_sum[0];
-            force[(i * 3 + 1) as usize] = force[(i * 3) as usize] + f_sum[1];
-            force[(i * 3 + 2) as usize] = force[(i * 3) as usize] + f_sum[2];
+            // force[(i * 3) as usize] = force[(i * 3) as usize] + f_sum[0];
+            // force[(i * 3 + 1) as usize] = force[(i * 3) as usize] + f_sum[1];
+            // force[(i * 3 + 2) as usize] = force[(i * 3) as usize] + f_sum[2];
         }
 
         // info!("{:?}", force);
@@ -201,7 +201,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         // Apply gravity
         for i in 1..(strand.v_num as usize) {
             force[(i * 3) as usize] = force[(i * 3) as usize] + 0.0;
-            force[(i * 3 + 1) as usize] = force[(i * 3 + 1) as usize] + -9.8;
+            force[(i * 3 + 1) as usize] = force[(i * 3 + 1) as usize] + -9.8 * strand.v_mass[i];
             force[(i * 3 + 2) as usize] = force[(i * 3 + 2) as usize] + 0.0;
         }
 
