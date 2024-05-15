@@ -188,9 +188,9 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
             let f_sum = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * kappa_part;
 
-            force[(i * 3) as usize] = f_sum[0];
-            force[(i * 3 + 1) as usize] = f_sum[1];
-            force[(i * 3 + 2) as usize] = f_sum[2];
+            force[(i * 3) as usize] = force[(i * 3) as usize] + f_sum[0];
+            force[(i * 3 + 1) as usize] = force[(i * 3) as usize] + f_sum[1];
+            force[(i * 3 + 2) as usize] = force[(i * 3) as usize] + f_sum[2];
         }
 
         // info!("{:?}", force);
@@ -199,7 +199,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         // info!("{:?}", force);
         // Apply gravity
-        for i in 0..(strand.v_num as usize) {
+        for i in 1..(strand.v_num as usize) {
             force[(i * 3) as usize] = force[(i * 3) as usize] + 0.0;
             force[(i * 3 + 1) as usize] = force[(i * 3 + 1) as usize] + -9.8;
             force[(i * 3 + 2) as usize] = force[(i * 3 + 2) as usize] + 0.0;
@@ -222,10 +222,12 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             p[1] = strand.v_position[i].y;
             p[2] = strand.v_position[i].z;
 
-            let mut a = f / strand.v_mass[i];
+            let a = f / strand.v_mass[i];
 
-            let mut v_new = v + a * task_interface.delta_time;
-            let mut p_new = p + v_new * task_interface.delta_time;
+            let v_new = v + a * task_interface.delta_time;
+            let p_new = p
+                + v_new * task_interface.delta_time
+                + 0.5 * a * task_interface.delta_time.powf(2.0);
 
             strand.v_velocity[i].x = v_new[0];
             strand.v_velocity[i].y = v_new[1];
