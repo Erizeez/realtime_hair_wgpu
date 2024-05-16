@@ -11,7 +11,6 @@ use crate::{
         data::Frame,
         pipeline::der::utils::{
             add_to_matrix, calc_nabla_i_kappa_i, calc_nabla_i_kappa_i1, calc_nabla_i_kappa_i_1,
-            partial_kappa,
         },
     },
     physic_simulation::interfaces::SimulationTaskInterface,

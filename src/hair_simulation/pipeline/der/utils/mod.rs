@@ -88,8 +88,8 @@ pub fn calc_nabla_i_kappa_i_1(
     reference_frame: &Vec<Frame>,
     material_frame: &Vec<Frame>,
     index: usize,
-) -> na::Matrix3x4<f32> {
-    na::Matrix3x4::<f32>::from_columns(&[
+) -> na::Matrix4x3<f32> {
+    na::Matrix4x3::<f32>::from_rows(&[
         partial_kappa(
             &e_vec,
             &t_tilde,
