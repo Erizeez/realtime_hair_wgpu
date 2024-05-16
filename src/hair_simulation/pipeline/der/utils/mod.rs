@@ -100,7 +100,8 @@ pub fn calc_nabla_i_kappa_i_1(
             true,
             true,
             false,
-        ),
+        )
+        .transpose(),
         partial_kappa(
             &e_vec,
             &t_tilde,
@@ -111,7 +112,8 @@ pub fn calc_nabla_i_kappa_i_1(
             false,
             true,
             false,
-        ),
+        )
+        .transpose(),
         partial_kappa(
             &e_vec,
             &t_tilde,
@@ -122,7 +124,8 @@ pub fn calc_nabla_i_kappa_i_1(
             true,
             false,
             false,
-        ),
+        )
+        .transpose(),
         partial_kappa(
             &e_vec,
             &t_tilde,
@@ -133,7 +136,8 @@ pub fn calc_nabla_i_kappa_i_1(
             false,
             false,
             false,
-        ),
+        )
+        .transpose(),
     ])
 }
 
@@ -144,8 +148,8 @@ pub fn calc_nabla_i_kappa_i(
     reference_frame: &Vec<Frame>,
     material_frame: &Vec<Frame>,
     index: usize,
-) -> na::Matrix3x4<f32> {
-    na::Matrix3x4::<f32>::from_columns(&[
+) -> na::Matrix4x3<f32> {
+    na::Matrix4x3::<f32>::from_rows(&[
         (partial_kappa(
             &e_vec,
             &t_tilde,
@@ -166,7 +170,8 @@ pub fn calc_nabla_i_kappa_i(
             true,
             true,
             false,
-        )),
+        ))
+        .transpose(),
         (partial_kappa(
             &e_vec,
             &t_tilde,
@@ -187,7 +192,8 @@ pub fn calc_nabla_i_kappa_i(
             false,
             true,
             false,
-        )),
+        ))
+        .transpose(),
         (partial_kappa(
             &e_vec,
             &t_tilde,
@@ -208,7 +214,8 @@ pub fn calc_nabla_i_kappa_i(
             true,
             false,
             false,
-        )),
+        ))
+        .transpose(),
         (partial_kappa(
             &e_vec,
             &t_tilde,
@@ -229,7 +236,8 @@ pub fn calc_nabla_i_kappa_i(
             false,
             false,
             false,
-        )),
+        ))
+        .transpose(),
     ])
 }
 
@@ -240,8 +248,8 @@ pub fn calc_nabla_i_kappa_i1(
     reference_frame: &Vec<Frame>,
     material_frame: &Vec<Frame>,
     index: usize,
-) -> na::Matrix3x4<f32> {
-    na::Matrix3x4::<f32>::from_columns(&[
+) -> na::Matrix4x3<f32> {
+    na::Matrix4x3::<f32>::from_rows(&[
         -partial_kappa(
             &e_vec,
             &t_tilde,
@@ -252,7 +260,8 @@ pub fn calc_nabla_i_kappa_i1(
             true,
             true,
             true,
-        ),
+        )
+        .transpose(),
         -partial_kappa(
             &e_vec,
             &t_tilde,
@@ -263,7 +272,8 @@ pub fn calc_nabla_i_kappa_i1(
             false,
             true,
             true,
-        ),
+        )
+        .transpose(),
         -partial_kappa(
             &e_vec,
             &t_tilde,
@@ -274,7 +284,8 @@ pub fn calc_nabla_i_kappa_i1(
             true,
             false,
             true,
-        ),
+        )
+        .transpose(),
         -partial_kappa(
             &e_vec,
             &t_tilde,
@@ -285,7 +296,8 @@ pub fn calc_nabla_i_kappa_i1(
             false,
             false,
             true,
-        ),
+        )
+        .transpose(),
     ])
 }
 

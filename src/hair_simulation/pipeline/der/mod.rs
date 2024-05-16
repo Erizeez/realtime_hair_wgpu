@@ -170,7 +170,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         force[(strand.v_num - 1) * 3 + 1] = force[(strand.v_num - 1) * 3 + 1] + f_s_last[1];
         force[(strand.v_num - 1) * 3 + 2] = force[(strand.v_num - 1) * 3 + 2] + f_s_last[2];
 
-        let mut nabla_kappa_vec = vec![vec![na::Matrix3x4::<f32>::zeros(); 3]; strand.v_num];
+        let mut nabla_kappa_vec = vec![vec![na::Matrix4x3::<f32>::zeros(); 3]; strand.v_num];
 
         for i in 1..(strand.v_num - 1) {
             let t_tilde = (strand.reference_frame[i - 1].t + strand.reference_frame[i].t)
@@ -225,19 +225,21 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
             if i - 1 > 0 {
                 kappa_part = kappa_part
-                    + nabla_kappa_vec[i][0] * (kappa[i - 1] - strand.l_initial_kappa[i - 1])
+                    + nabla_kappa_vec[i][0].transpose()
+                        * (kappa[i - 1] - strand.l_initial_kappa[i - 1])
                         / length_vec[i - 1];
             }
 
             {
                 kappa_part = kappa_part
-                    + nabla_kappa_vec[i][1] * (kappa[i] - strand.l_initial_kappa[i])
+                    + nabla_kappa_vec[i][1].transpose() * (kappa[i] - strand.l_initial_kappa[i])
                         / length_vec[i];
             }
 
             if i + 1 < strand.v_num - 1 {
                 kappa_part = kappa_part
-                    + nabla_kappa_vec[i][2] * (kappa[i + 1] - strand.l_initial_kappa[i + 1])
+                    + nabla_kappa_vec[i][2].transpose()
+                        * (kappa[i + 1] - strand.l_initial_kappa[i + 1])
                         / length_vec[i + 1];
             }
 
@@ -249,11 +251,11 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             force[i * 3 + 2] = force[i * 3] + f_sum[2];
 
             let mut h_i_i = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                * (nabla_kappa_vec[i][1] * nabla_kappa_vec[i][1].transpose() / length_vec[i]);
+                * (nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i][1] / length_vec[i]);
 
             if i >= 2 {
                 let h_i_i_2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i - 2][0].transpose()
+                    * (nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i - 2][0]
                         / length_vec[i - 2]);
                 add_to_matrix(&mut hessian, &h_i_i_2, ((i * 3), ((i - 2) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i_2.transpose(), (((i - 2) * 3), (i * 3)));
@@ -261,35 +263,35 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
             if i >= 1 {
                 let h_i_i_1 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i - 1][1].transpose()
+                    * (nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i - 1][1]
                         / length_vec[i - 1]
-                        + nabla_kappa_vec[i][1] * nabla_kappa_vec[i - 1][2].transpose()
+                        + nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i - 1][2]
                             / length_vec[i]);
                 add_to_matrix(&mut hessian, &h_i_i_1, ((i * 3), ((i - 1) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i_1.transpose(), (((i - 1) * 3), (i * 3)));
 
                 h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i][0].transpose()
+                    * (nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i][0]
                         / length_vec[i - 1]);
             }
 
             if i + 1 < strand.l_num {
                 let h_i_i1 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][1] * nabla_kappa_vec[i + 1][0].transpose()
+                    * (nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i + 1][0]
                         / length_vec[i]
-                        + nabla_kappa_vec[i][2] * nabla_kappa_vec[i + 1][1].transpose()
+                        + nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i + 1][1]
                             / length_vec[i + 1]);
                 add_to_matrix(&mut hessian, &h_i_i1, ((i * 3), ((i + 1) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i1.transpose(), (((i + 1) * 3), (i * 3)));
 
                 h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i + 1][1] * nabla_kappa_vec[i + 1][1].transpose()
+                    * (nabla_kappa_vec[i + 1][1].transpose() * nabla_kappa_vec[i + 1][1]
                         / length_vec[i + 1]);
             }
 
             if i + 2 < strand.l_num {
                 let h_i_i2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][2] * nabla_kappa_vec[i + 2][0].transpose()
+                    * (nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i + 2][0]
                         / length_vec[i + 1]);
 
                 add_to_matrix(&mut hessian, &h_i_i2, ((i * 3), ((i + 2) * 3)));
@@ -308,6 +310,10 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             force[i * 3] += 0.0;
             force[i * 3 + 1] += -9.8 * strand.v_mass[i];
             force[i * 3 + 2] += 0.0;
+
+            // force[i * 3] -= strand.v_velocity[i].x.powf(2.0) * 0.1;
+            // force[i * 3 + 1] -= strand.v_velocity[i].y.powf(2.0) * 0.1;
+            // force[i * 3 + 2] -= strand.v_velocity[i].z.powf(2.0) * 0.1;
         }
 
         // info!("{:?}", force);
