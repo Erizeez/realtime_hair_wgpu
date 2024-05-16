@@ -273,11 +273,91 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
             let f_sum = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * kappa_part;
 
-            // force[(i * 3) as usize] = force[(i * 3) as usize] + f_sum[0];
-            // force[(i * 3 + 1) as usize] = force[(i * 3) as usize] + f_sum[1];
-            // force[(i * 3 + 2) as usize] = force[(i * 3) as usize] + f_sum[2];
+            force[(i * 3) as usize] = force[(i * 3) as usize] + f_sum[0];
+            force[(i * 3 + 1) as usize] = force[(i * 3) as usize] + f_sum[1];
+            force[(i * 3 + 2) as usize] = force[(i * 3) as usize] + f_sum[2];
 
-            // let h_i_i_2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * ();
+            let mut h_i_i = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                * (nabla_kappa_vec[i][1] * nabla_kappa_vec[i][1].transpose() / length_vec[i]);
+
+            if i >= 2 {
+                let h_i_i_2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                    * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i - 2][0].transpose()
+                        / length_vec[i - 2]);
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i_2,
+                    ((i * 3) as usize, ((i - 2) * 3) as usize),
+                );
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i_2.transpose(),
+                    (((i - 2) * 3) as usize, (i * 3) as usize),
+                );
+            }
+
+            if i >= 1 {
+                let h_i_i_1 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                    * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i - 1][1].transpose()
+                        / length_vec[i - 1]
+                        + nabla_kappa_vec[i][1] * nabla_kappa_vec[i - 1][2].transpose()
+                            / length_vec[i]);
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i_1,
+                    ((i * 3) as usize, ((i - 1) * 3) as usize),
+                );
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i_1.transpose(),
+                    (((i - 1) * 3) as usize, (i * 3) as usize),
+                );
+
+                h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                    * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i][0].transpose()
+                        / length_vec[i - 1]);
+            }
+
+            if i + 1 < strand.l_num {
+                let h_i_i1 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                    * (nabla_kappa_vec[i][1] * nabla_kappa_vec[i + 1][0].transpose()
+                        / length_vec[i]
+                        + nabla_kappa_vec[i][2] * nabla_kappa_vec[i + 1][1].transpose()
+                            / length_vec[i + 1]);
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i1,
+                    ((i * 3) as usize, ((i + 1) * 3) as usize),
+                );
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i1.transpose(),
+                    (((i + 1) * 3) as usize, (i * 3) as usize),
+                );
+
+                h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                    * (nabla_kappa_vec[i + 1][1] * nabla_kappa_vec[i + 1][1].transpose()
+                        / length_vec[i + 1]);
+            }
+
+            if i + 2 < strand.l_num {
+                let h_i_i2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
+                    * (nabla_kappa_vec[i][2] * nabla_kappa_vec[i + 2][0].transpose()
+                        / length_vec[i + 1]);
+
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i2,
+                    ((i * 3) as usize, ((i + 2) * 3) as usize),
+                );
+                add_to_matrix(
+                    &mut hessian,
+                    &h_i_i2.transpose(),
+                    (((i + 2) * 3) as usize, (i * 3) as usize),
+                );
+            }
+
+            add_to_matrix(&mut hessian, &h_i_i, ((i * 3) as usize, (i * 3) as usize));
         }
 
         // info!("{:?}", force);

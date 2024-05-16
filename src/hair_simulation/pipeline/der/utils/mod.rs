@@ -294,6 +294,19 @@ pub fn add_to_matrix(
     value: &na::Matrix3<f32>,
     start: (usize, usize),
 ) {
+    //Check NaN
+    if value[(0, 0)].is_nan()
+        || value[(0, 1)].is_nan()
+        || value[(0, 2)].is_nan()
+        || value[(1, 0)].is_nan()
+        || value[(1, 1)].is_nan()
+        || value[(1, 2)].is_nan()
+        || value[(2, 0)].is_nan()
+        || value[(2, 1)].is_nan()
+        || value[(2, 2)].is_nan()
+    {
+        return;
+    }
     matrix[(start.0, start.1)] += value[(0, 0)];
     matrix[(start.0, start.1 + 1)] += value[(0, 1)];
     matrix[(start.0, start.1 + 2)] += value[(0, 2)];
