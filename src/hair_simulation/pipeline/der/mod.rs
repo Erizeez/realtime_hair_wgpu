@@ -54,26 +54,23 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         let mut length_vec = Vec::new();
         // Update reference frame
         for i in 0..strand.l_num {
-            let e = strand.v_position[(i + 1) as usize] - strand.v_position[i as usize];
+            let e = strand.v_position[i + 1] - strand.v_position[i];
             let t = e.normalize();
             length_vec.push(e.norm());
 
-            let reference_frame =
-                utils::parallel_transport(strand.reference_frame[i as usize].t, t);
-            // info!("lastFrame: {:?}", strand.reference_frame[i as usize]);
-            // info!("t: {:?}", t);
-            // info!("referenceFrame: {:?}", reference_frame);
-            strand.reference_frame[i as usize].b = reference_frame.0;
-            strand.reference_frame[i as usize].n = reference_frame.2;
-            strand.reference_frame[i as usize].t = t;
+            let reference_frame = utils::parallel_transport(strand.reference_frame[i].t, t);
+
+            strand.reference_frame[i].b = reference_frame.0;
+            strand.reference_frame[i].n = reference_frame.2;
+            strand.reference_frame[i].t = t;
             e_vec.push(e);
         }
 
         // Calculate material frame
         let mut material_frame = Vec::new();
-        for i in 0..(strand.l_num as usize) {
-            let a1 = strand.reference_frame[i as usize].n;
-            let a2 = strand.reference_frame[i as usize].b;
+        for i in 0..(strand.l_num) {
+            let a1 = strand.reference_frame[i].n;
+            let a2 = strand.reference_frame[i].b;
 
             let m1 = a1 * f32::cos(strand.l_twist[i]) + a2 * f32::sin(strand.l_twist[i]);
             let m2 = -a1 * f32::sin(strand.l_twist[i]) + a2 * f32::cos(strand.l_twist[i]);
@@ -87,7 +84,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         // Calculate kappa_b
         let mut kappa_b = Vec::new();
-        for i in 0..(strand.v_num as usize - 1) {
+        for i in 0..(strand.v_num - 1) {
             if i == 0 {
                 kappa_b.push(na::Vector3::zeros());
             } else {
@@ -105,7 +102,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         // Calculate kappa
         let mut kappa = Vec::new();
-        for i in 0..(strand.v_num as usize - 1) {
+        for i in 0..(strand.v_num - 1) {
             if i == 0 {
                 kappa.push(na::Matrix4x1::new(0.0, 0.0, 0.0, 0.0));
             } else {
@@ -120,14 +117,14 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         }
 
         if strand.l_initial_kappa.len() == 0 {
-            for i in 0..(strand.v_num as usize - 1) {
+            for i in 0..(strand.v_num - 1) {
                 strand.l_initial_kappa.push(kappa[i]);
             }
             info!("kappa initialized");
         }
 
         // Apply stretch
-        for i in 1..(strand.v_num as usize - 1) {
+        for i in 1..(strand.v_num - 1) {
             let f_si = PI
                 * strand.radius.powf(2.0)
                 * strand.youngs
@@ -155,61 +152,35 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     * na::Matrix3::<f32>::identity()
                     + strand.reference_frame[i].t * strand.reference_frame[i].t.transpose());
 
-            add_to_matrix(
-                &mut hessian,
-                &h_i_1,
-                ((i * 3) as usize, ((i - 1) * 3) as usize),
-            );
-            add_to_matrix(
-                &mut hessian,
-                &h_i_1.transpose(),
-                (((i - 1) * 3) as usize, (i * 3) as usize),
-            );
+            add_to_matrix(&mut hessian, &h_i_1, ((i * 3), ((i - 1) * 3)));
+            add_to_matrix(&mut hessian, &h_i_1.transpose(), (((i - 1) * 3), (i * 3)));
 
-            add_to_matrix(
-                &mut hessian,
-                &h_i1,
-                ((i * 3) as usize, ((i + 1) * 3) as usize),
-            );
-            add_to_matrix(
-                &mut hessian,
-                &h_i1.transpose(),
-                (((i + 1) * 3) as usize, (i * 3) as usize),
-            );
+            add_to_matrix(&mut hessian, &h_i1, ((i * 3), ((i + 1) * 3)));
+            add_to_matrix(&mut hessian, &h_i1.transpose(), (((i + 1) * 3), (i * 3)));
 
-            add_to_matrix(
-                &mut hessian,
-                &(-h_i_1 - h_i1),
-                ((i * 3) as usize, (i * 3) as usize),
-            );
+            add_to_matrix(&mut hessian, &(-h_i_1 - h_i1), ((i * 3), (i * 3)));
         }
 
         let f_s_last = -PI
             * strand.radius.powf(2.0)
             * strand.youngs
-            * (length_vec[strand.v_num as usize - 2]
-                / strand.l_initial_length[strand.v_num as usize - 2]
-                - 1.0)
-            * strand.reference_frame[strand.v_num as usize - 2].t;
+            * (length_vec[strand.v_num - 2] / strand.l_initial_length[strand.v_num - 2] - 1.0)
+            * strand.reference_frame[strand.v_num - 2].t;
 
-        force[((strand.v_num - 1) * 3) as usize] =
-            force[((strand.v_num - 1) * 3) as usize] + f_s_last[0];
-        force[((strand.v_num - 1) * 3 + 1) as usize] =
-            force[((strand.v_num - 1) * 3 + 1) as usize] + f_s_last[1];
-        force[((strand.v_num - 1) * 3 + 2) as usize] =
-            force[((strand.v_num - 1) * 3 + 2) as usize] + f_s_last[2];
+        force[(strand.v_num - 1) * 3] = force[(strand.v_num - 1) * 3] + f_s_last[0];
+        force[(strand.v_num - 1) * 3 + 1] = force[(strand.v_num - 1) * 3 + 1] + f_s_last[1];
+        force[(strand.v_num - 1) * 3 + 2] = force[(strand.v_num - 1) * 3 + 2] + f_s_last[2];
 
-        let mut nabla_kappa_vec =
-            vec![vec![na::Matrix3x4::<f32>::zeros(); 3]; strand.v_num as usize];
+        let mut nabla_kappa_vec = vec![vec![na::Matrix3x4::<f32>::zeros(); 3]; strand.v_num];
 
-        for i in 1..(strand.v_num as usize - 1) {
+        for i in 1..(strand.v_num - 1) {
             let t_tilde = (strand.reference_frame[i - 1].t + strand.reference_frame[i].t)
                 / (1.0
                     + strand.reference_frame[i - 1]
                         .t
                         .dot(&strand.reference_frame[i].t));
 
-            if i - 1 > 1 {
+            if i - 1 > 0 {
                 let nabla_i_kappa_i_1 = calc_nabla_i_kappa_i_1(
                     &e_vec,
                     &t_tilde,
@@ -218,8 +189,8 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     &material_frame,
                     i - 1,
                 );
-
-                nabla_kappa_vec[i - 1][0] = nabla_i_kappa_i_1;
+                info!("nabla_i_kappa_i_1{:?}", nabla_i_kappa_i_1);
+                nabla_kappa_vec[i][0] = nabla_i_kappa_i_1;
             }
 
             {
@@ -231,11 +202,11 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     &material_frame,
                     i,
                 );
-
+                info!("nabla_i_kappa_i{:?}", nabla_i_kappa_i);
                 nabla_kappa_vec[i][1] = nabla_i_kappa_i;
             }
 
-            if i + 1 < strand.v_num as usize - 1 {
+            if i + 1 < strand.v_num - 1 {
                 let nabla_i_kappa_i1 = calc_nabla_i_kappa_i1(
                     &e_vec,
                     &t_tilde,
@@ -244,16 +215,16 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     &material_frame,
                     i + 1,
                 );
-
-                nabla_kappa_vec[i + 1][2] = nabla_i_kappa_i1;
+                info!("nabla_i_kappa_i1{:?}", nabla_i_kappa_i1);
+                nabla_kappa_vec[i][2] = nabla_i_kappa_i1;
             }
         }
 
         // Apply bend
-        for i in 1..(strand.v_num as usize - 1) {
+        for i in 1..(strand.v_num - 1) {
             let mut kappa_part = na::Matrix3x1::<f32>::zeros();
 
-            if i - 1 > 1 {
+            if i - 1 > 0 {
                 kappa_part = kappa_part
                     + nabla_kappa_vec[i][0] * (kappa[i - 1] - strand.l_initial_kappa[i - 1])
                         / length_vec[i - 1];
@@ -265,17 +236,18 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                         / length_vec[i];
             }
 
-            if i + 1 < strand.v_num as usize - 1 {
+            if i + 1 < strand.v_num - 1 {
                 kappa_part = kappa_part
                     + nabla_kappa_vec[i][2] * (kappa[i + 1] - strand.l_initial_kappa[i + 1])
                         / length_vec[i + 1];
             }
 
             let f_sum = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * kappa_part;
+            // info!("{:?}", f_sum);
 
-            force[(i * 3) as usize] = force[(i * 3) as usize] + f_sum[0];
-            force[(i * 3 + 1) as usize] = force[(i * 3) as usize] + f_sum[1];
-            force[(i * 3 + 2) as usize] = force[(i * 3) as usize] + f_sum[2];
+            force[i * 3] = force[i * 3] + f_sum[0];
+            force[i * 3 + 1] = force[i * 3] + f_sum[1];
+            force[i * 3 + 2] = force[i * 3] + f_sum[2];
 
             let mut h_i_i = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
                 * (nabla_kappa_vec[i][1] * nabla_kappa_vec[i][1].transpose() / length_vec[i]);
@@ -284,16 +256,8 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                 let h_i_i_2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
                     * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i - 2][0].transpose()
                         / length_vec[i - 2]);
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i_2,
-                    ((i * 3) as usize, ((i - 2) * 3) as usize),
-                );
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i_2.transpose(),
-                    (((i - 2) * 3) as usize, (i * 3) as usize),
-                );
+                add_to_matrix(&mut hessian, &h_i_i_2, ((i * 3), ((i - 2) * 3)));
+                add_to_matrix(&mut hessian, &h_i_i_2.transpose(), (((i - 2) * 3), (i * 3)));
             }
 
             if i >= 1 {
@@ -302,16 +266,8 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                         / length_vec[i - 1]
                         + nabla_kappa_vec[i][1] * nabla_kappa_vec[i - 1][2].transpose()
                             / length_vec[i]);
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i_1,
-                    ((i * 3) as usize, ((i - 1) * 3) as usize),
-                );
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i_1.transpose(),
-                    (((i - 1) * 3) as usize, (i * 3) as usize),
-                );
+                add_to_matrix(&mut hessian, &h_i_i_1, ((i * 3), ((i - 1) * 3)));
+                add_to_matrix(&mut hessian, &h_i_i_1.transpose(), (((i - 1) * 3), (i * 3)));
 
                 h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
                     * (nabla_kappa_vec[i][0] * nabla_kappa_vec[i][0].transpose()
@@ -324,16 +280,8 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                         / length_vec[i]
                         + nabla_kappa_vec[i][2] * nabla_kappa_vec[i + 1][1].transpose()
                             / length_vec[i + 1]);
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i1,
-                    ((i * 3) as usize, ((i + 1) * 3) as usize),
-                );
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i1.transpose(),
-                    (((i + 1) * 3) as usize, (i * 3) as usize),
-                );
+                add_to_matrix(&mut hessian, &h_i_i1, ((i * 3), ((i + 1) * 3)));
+                add_to_matrix(&mut hessian, &h_i_i1.transpose(), (((i + 1) * 3), (i * 3)));
 
                 h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
                     * (nabla_kappa_vec[i + 1][1] * nabla_kappa_vec[i + 1][1].transpose()
@@ -345,19 +293,11 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     * (nabla_kappa_vec[i][2] * nabla_kappa_vec[i + 2][0].transpose()
                         / length_vec[i + 1]);
 
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i2,
-                    ((i * 3) as usize, ((i + 2) * 3) as usize),
-                );
-                add_to_matrix(
-                    &mut hessian,
-                    &h_i_i2.transpose(),
-                    (((i + 2) * 3) as usize, (i * 3) as usize),
-                );
+                add_to_matrix(&mut hessian, &h_i_i2, ((i * 3), ((i + 2) * 3)));
+                add_to_matrix(&mut hessian, &h_i_i2.transpose(), (((i + 2) * 3), (i * 3)));
             }
 
-            add_to_matrix(&mut hessian, &h_i_i, ((i * 3) as usize, (i * 3) as usize));
+            add_to_matrix(&mut hessian, &h_i_i, ((i * 3), (i * 3)));
         }
 
         // info!("{:?}", force);
@@ -365,14 +305,14 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         // Apply twist
 
         // Apply gravity
-        for i in 1..(strand.v_num as usize) {
+        for i in 1..(strand.v_num) {
             force[i * 3] += 0.0;
             force[i * 3 + 1] += -9.8 * strand.v_mass[i];
             force[i * 3 + 2] += 0.0;
         }
 
         // info!("{:?}", force);
-        info!("{:?}", hessian);
+        // info!("{:?}", hessian);
         let a = mass.clone() + task_interface.delta_time.powf(2.0) * hessian;
 
         let b = mass.clone() * velocity_0 + task_interface.delta_time * force;
@@ -381,12 +321,9 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         velocity = a.lu().solve(&b).unwrap();
 
         // Update strand states
-        for i in 1..(strand.v_num as usize) {
-            strand.v_velocity[i] = na::Vector3::new(
-                velocity[(i * 3) as usize],
-                velocity[(i * 3 + 1) as usize],
-                velocity[(i * 3 + 2) as usize],
-            );
+        for i in 1..(strand.v_num) {
+            strand.v_velocity[i] =
+                na::Vector3::new(velocity[i * 3], velocity[i * 3 + 1], velocity[i * 3 + 2]);
 
             strand.v_position[i] =
                 strand.v_position[i] + task_interface.delta_time * strand.v_velocity[i];
