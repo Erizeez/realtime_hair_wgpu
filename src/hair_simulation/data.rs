@@ -198,14 +198,14 @@ pub fn generate_batch_hair_strands(
 
     let mass_per_vertex = mass / (strand_seg_num + 1) as f32;
 
-    for i in 0..group_num {
+    for i in 2..group_num {
         let group_angle = i as f32 * angle_interval;
         let mut num: i32 = (2.0 * PI * radius * f32::sin(group_angle) / strand_interval) as i32;
         if num <= 0 {
             num = 1;
         }
         let new_angle_interval = 2.0 * PI / num as f32;
-        for j in 0..num {
+        for j in 0..1 {
             let from_strand_pos = na::Vector3::<f32>::new(
                 center.x + radius * f32::sin(group_angle) * f32::cos(j as f32 * new_angle_interval),
                 center.y + f32::cos(group_angle) * radius,

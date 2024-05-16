@@ -288,3 +288,21 @@ pub fn calc_nabla_i_kappa_i1(
         ),
     ])
 }
+
+pub fn add_to_matrix(
+    matrix: &mut na::DMatrix<f32>,
+    value: &na::Matrix3<f32>,
+    start: (usize, usize),
+) {
+    matrix[(start.0, start.1)] += value[(0, 0)];
+    matrix[(start.0, start.1 + 1)] += value[(0, 1)];
+    matrix[(start.0, start.1 + 2)] += value[(0, 2)];
+
+    matrix[(start.0 + 1, start.1)] += value[(1, 0)];
+    matrix[(start.0 + 1, start.1 + 1)] += value[(1, 1)];
+    matrix[(start.0 + 1, start.1 + 2)] += value[(1, 2)];
+
+    matrix[(start.0 + 2, start.1)] += value[(2, 0)];
+    matrix[(start.0 + 2, start.1 + 1)] += value[(2, 1)];
+    matrix[(start.0 + 2, start.1 + 2)] += value[(2, 2)];
+}
