@@ -55,7 +55,7 @@ pub fn init_simulation(
         PI / 4.0,
         3,
         0.5,
-        20,
+        10,
         3.65e3,
         1.21e9,
         10e-6,

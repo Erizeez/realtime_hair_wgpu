@@ -243,61 +243,64 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                         / length_vec[i + 1];
             }
 
-            let f_sum = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0 * kappa_part;
+            let h_factor = PI * strand.radius.powf(4.0) * strand.youngs / 8.0;
+
+            let f_sum = -h_factor * kappa_part;
             // info!("{:?}", f_sum);
 
-            force[i * 3] = force[i * 3] + f_sum[0];
-            force[i * 3 + 1] = force[i * 3] + f_sum[1];
-            force[i * 3 + 2] = force[i * 3] + f_sum[2];
+            force[i * 3] += f_sum[0];
+            force[i * 3 + 1] += f_sum[1];
+            force[i * 3 + 2] += f_sum[2];
 
-            let mut h_i_i = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                * (nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i][1] / length_vec[i]);
+            let mut h_i_i =
+                nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i][1] / length_vec[i];
 
             if i >= 2 {
-                let h_i_i_2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i - 2][0]
-                        / length_vec[i - 2]);
+                let mut h_i_i_2 = nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i - 2][2]
+                    / length_vec[i - 1];
+
+                h_i_i_2 *= h_factor;
                 add_to_matrix(&mut hessian, &h_i_i_2, ((i * 3), ((i - 2) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i_2.transpose(), (((i - 2) * 3), (i * 3)));
             }
 
             if i >= 1 {
-                let h_i_i_1 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i - 1][1]
-                        / length_vec[i - 1]
-                        + nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i - 1][2]
-                            / length_vec[i]);
+                let mut h_i_i_1 = nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i - 1][1]
+                    / length_vec[i - 1]
+                    + nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i - 1][2] / length_vec[i];
+
+                h_i_i_1 *= h_factor;
                 add_to_matrix(&mut hessian, &h_i_i_1, ((i * 3), ((i - 1) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i_1.transpose(), (((i - 1) * 3), (i * 3)));
 
-                h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i][0]
-                        / length_vec[i - 1]);
+                h_i_i +=
+                    nabla_kappa_vec[i][0].transpose() * nabla_kappa_vec[i][0] / length_vec[i - 1];
             }
 
             if i + 1 < strand.l_num {
-                let h_i_i1 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i + 1][0]
-                        / length_vec[i]
-                        + nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i + 1][1]
-                            / length_vec[i + 1]);
+                let mut h_i_i1 = nabla_kappa_vec[i][1].transpose() * nabla_kappa_vec[i + 1][0]
+                    / length_vec[i]
+                    + nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i + 1][1]
+                        / length_vec[i + 1];
+
+                h_i_i1 *= h_factor;
                 add_to_matrix(&mut hessian, &h_i_i1, ((i * 3), ((i + 1) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i1.transpose(), (((i + 1) * 3), (i * 3)));
 
-                h_i_i += -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i + 1][1].transpose() * nabla_kappa_vec[i + 1][1]
-                        / length_vec[i + 1]);
+                h_i_i +=
+                    nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i][2] / length_vec[i + 1];
             }
 
             if i + 2 < strand.l_num {
-                let h_i_i2 = -PI * strand.radius.powf(4.0) * strand.youngs / 8.0
-                    * (nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i + 2][0]
-                        / length_vec[i + 1]);
+                let mut h_i_i2 = nabla_kappa_vec[i][2].transpose() * nabla_kappa_vec[i + 2][0]
+                    / length_vec[i + 1];
 
+                h_i_i2 *= h_factor;
                 add_to_matrix(&mut hessian, &h_i_i2, ((i * 3), ((i + 2) * 3)));
                 add_to_matrix(&mut hessian, &h_i_i2.transpose(), (((i + 2) * 3), (i * 3)));
             }
 
+            h_i_i *= h_factor;
             add_to_matrix(&mut hessian, &h_i_i, ((i * 3), (i * 3)));
         }
 
@@ -311,9 +314,9 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             force[i * 3 + 1] += -9.8 * strand.v_mass[i];
             force[i * 3 + 2] += 0.0;
 
-            // force[i * 3] -= strand.v_velocity[i].x.powf(2.0) * 0.1;
-            // force[i * 3 + 1] -= strand.v_velocity[i].y.powf(2.0) * 0.1;
-            // force[i * 3 + 2] -= strand.v_velocity[i].z.powf(2.0) * 0.1;
+            // force[i * 3] -= strand.v_velocity[i].x.powf(2.0) * 0.0000001;
+            // force[i * 3 + 1] -= strand.v_velocity[i].y.powf(2.0) * 0.0000001;
+            // force[i * 3 + 2] -= strand.v_velocity[i].z.powf(2.0) * 0.0000001;
         }
 
         // info!("{:?}", force);
