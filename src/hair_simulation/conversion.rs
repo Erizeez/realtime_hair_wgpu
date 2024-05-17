@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f64::consts::PI;
 
 use bevy::{
     asset::Assets,
@@ -55,7 +55,7 @@ pub fn init_simulation(
         PI / 4.0,
         3,
         0.5,
-        10,
+        30,
         3.65e3,
         1.21e9,
         10e-6,
@@ -74,7 +74,7 @@ pub fn init_simulation(
         "hairs".to_string(),
         commands
             .spawn((
-                meshes.add(Cylinder::new(HAIR_THICKNESS, HAIR_SEG_LENGTH)),
+                meshes.add(Cylinder::new(HAIR_THICKNESS as f32, HAIR_SEG_LENGTH as f32)),
                 HairsMarker,
                 SpatialBundle::INHERITED_IDENTITY,
                 InstanceMaterialData(hair_data),
@@ -87,7 +87,7 @@ pub fn init_simulation(
         "head".to_string(),
         commands
             .spawn(PbrBundle {
-                mesh: meshes.add(Sphere::new(head_radius)),
+                mesh: meshes.add(Sphere::new(head_radius as f32)),
                 material: materials.add(StandardMaterial {
                     base_color: Color::rgba(1.0, 0.8, 0.6, 0.0),
                     alpha_mode: AlphaMode::Mask(0.5),

@@ -25,5 +25,5 @@ impl Plugin for HairSimulationPlugin {
     }
 }
 
-const HAIR_THICKNESS: f32 = 0.001;
-const HAIR_SEG_LENGTH: f32 = 0.1;
+const HAIR_THICKNESS: f64 = 0.001;
+const HAIR_SEG_LENGTH: f64 = 0.1;

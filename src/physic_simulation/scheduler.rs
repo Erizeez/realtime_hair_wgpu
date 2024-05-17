@@ -50,7 +50,7 @@ impl PhsicaSimulationScheduler {
         let mut task_interface = SimulationTaskInterface {
             iteration_cnt: self.iteration_cnt,
             data,
-            delta_time: 1e-4,
+            delta_time: 1e-3,
             elapsed: Default::default(),
         };
 

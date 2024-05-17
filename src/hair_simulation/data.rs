@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f64::consts::PI;
 
 use bevy::{
     log::info,
@@ -19,10 +19,10 @@ pub struct SimulationData {
 
 #[derive(Default, Clone)]
 pub struct Head {
-    pub position: na::Vector3<f32>,
-    pub radius: f32,
+    pub position: na::Vector3<f64>,
+    pub radius: f64,
     pub rotation: Quat,
-    pub attachments: Vec<na::Vector3<f32>>,
+    pub attachments: Vec<na::Vector3<f64>>,
 }
 
 #[derive(Default, Clone)]
@@ -32,9 +32,9 @@ pub struct Hairs {
 
 #[derive(Default, Clone, Debug)]
 pub struct Frame {
-    pub b: na::Vector3<f32>,
-    pub n: na::Vector3<f32>,
-    pub t: na::Vector3<f32>,
+    pub b: na::Vector3<f64>,
+    pub n: na::Vector3<f64>,
+    pub t: na::Vector3<f64>,
 }
 
 #[derive(Clone)]
@@ -43,34 +43,34 @@ pub struct HairStrand {
     pub attachment: usize,
 
     // Basic properties
-    pub radius: f32,
-    pub youngs: f32,
-    pub shear: f32,
+    pub radius: f64,
+    pub youngs: f64,
+    pub shear: f64,
 
     // Vertices
     pub v_num: usize,
-    pub v_mass: Vec<f32>,
-    pub v_position: Vec<na::Vector3<f32>>,
-    pub v_velocity: Vec<na::Vector3<f32>>,
+    pub v_mass: Vec<f64>,
+    pub v_position: Vec<na::Vector3<f64>>,
+    pub v_velocity: Vec<na::Vector3<f64>>,
 
     // Lines
     pub l_num: usize,
-    pub l_momemtum: Vec<f32>,
-    pub l_initial_length: Vec<f32>,
-    pub l_twist: Vec<f32>,
-    pub l_angular: Vec<f32>,
-    pub l_initial_kappa: Vec<na::Matrix4x1<f32>>,
+    pub l_momemtum: Vec<f64>,
+    pub l_initial_length: Vec<f64>,
+    pub l_twist: Vec<f64>,
+    pub l_angular: Vec<f64>,
+    pub l_initial_kappa: Vec<na::Matrix4x1<f64>>,
 
     // Reference Frame
     pub reference_frame: Vec<Frame>,
 }
 
-pub fn convert_to_vec3(v: na::Vector3<f32>) -> Vec3 {
-    Vec3::new(v.x, v.y, v.z)
+pub fn convert_to_vec3(v: na::Vector3<f64>) -> Vec3 {
+    Vec3::new(v.x as f32, v.y as f32, v.z as f32)
 }
 
-pub fn convert_to_na_vec3(v: Vec3) -> na::Vector3<f32> {
-    na::Vector3::new(v.x, v.y, v.z)
+pub fn convert_to_na_vec3(v: Vec3) -> na::Vector3<f64> {
+    na::Vector3::new(v.x as f64, v.y as f64, v.z as f64)
 }
 
 impl HairStrand {
@@ -88,8 +88,12 @@ impl HairStrand {
 
             instance_data.push(InstanceData {
                 rotation: strand_rotation.into(),
-                translation: strand_translation.into(),
-                scale: [1.0, strand_length / HAIR_SEG_LENGTH, 1.0],
+                translation: [
+                    strand_translation.x as f32,
+                    strand_translation.y as f32,
+                    strand_translation.z as f32,
+                ],
+                scale: [1.0, (strand_length / HAIR_SEG_LENGTH) as f32, 1.0],
                 color: [0.27, 0.1, 0.07, 1.0],
             });
         }
@@ -97,7 +101,7 @@ impl HairStrand {
         instance_data
     }
 
-    pub fn get_strand_length(&self, index: usize) -> f32 {
+    pub fn get_strand_length(&self, index: usize) -> f64 {
         if index >= self.l_num as usize {
             return -1.0;
         }
@@ -106,13 +110,13 @@ impl HairStrand {
 }
 
 pub fn generate_straight_hair_strand(
-    mass: f32,
+    mass: f64,
     seg_num: usize,
-    from_pos: na::Vector3<f32>,
-    to_pos: na::Vector3<f32>,
-    youngs: f32,
-    shear: f32,
-    strand_radius: f32,
+    from_pos: na::Vector3<f64>,
+    to_pos: na::Vector3<f64>,
+    youngs: f64,
+    shear: f64,
+    strand_radius: f64,
 ) -> HairStrand {
     let mut hair_strand = HairStrand {
         attachment: 0,
@@ -132,13 +136,13 @@ pub fn generate_straight_hair_strand(
         reference_frame: Vec::new(),
     };
 
-    let seg_length = (to_pos - from_pos) / seg_num as f32;
+    let seg_length = (to_pos - from_pos) / seg_num as f64;
 
     for i in 0..(seg_num + 1) {
         hair_strand.v_mass.push(mass);
         hair_strand
             .v_position
-            .push(from_pos + seg_length * i as f32);
+            .push(from_pos + seg_length * i as f64);
         hair_strand.v_velocity.push(na::Vector3::zeros());
     }
 
@@ -174,16 +178,16 @@ pub fn generate_straight_hair_strand(
 }
 
 pub fn generate_batch_hair_strands(
-    center: na::Vector3<f32>,
-    radius: f32,
-    angle: f32,
+    center: na::Vector3<f64>,
+    radius: f64,
+    angle: f64,
     group_num: i32,
-    length: f32,
+    length: f64,
     strand_seg_num: usize,
-    youngs: f32,
-    shear: f32,
-    mass: f32,
-    strand_radius: f32,
+    youngs: f64,
+    shear: f64,
+    mass: f64,
+    strand_radius: f64,
 ) -> SimulationData {
     let mut hair_strands = Vec::new();
     let mut head = Head {
@@ -193,23 +197,23 @@ pub fn generate_batch_hair_strands(
         attachments: Vec::new(),
     };
 
-    let angle_interval = angle / (group_num - 1) as f32;
-    let strand_interval = radius * angle_interval as f32;
+    let angle_interval = angle / (group_num - 1) as f64;
+    let strand_interval = radius * angle_interval as f64;
 
-    let mass_per_vertex = mass / (strand_seg_num + 1) as f32;
+    let mass_per_vertex = mass / (strand_seg_num + 1) as f64;
 
     for i in 2..group_num {
-        let group_angle = i as f32 * angle_interval;
-        let mut num: i32 = (2.0 * PI * radius * f32::sin(group_angle) / strand_interval) as i32;
+        let group_angle = i as f64 * angle_interval;
+        let mut num: i32 = (2.0 * PI * radius * f64::sin(group_angle) / strand_interval) as i32;
         if num <= 0 {
             num = 1;
         }
-        let new_angle_interval = 2.0 * PI / num as f32;
+        let new_angle_interval = 2.0 * PI / num as f64;
         for j in 0..1 {
-            let from_strand_pos = na::Vector3::<f32>::new(
-                center.x + radius * f32::sin(group_angle) * f32::cos(j as f32 * new_angle_interval),
-                center.y + f32::cos(group_angle) * radius,
-                center.z + radius * f32::sin(group_angle) * f32::sin(j as f32 * new_angle_interval),
+            let from_strand_pos = na::Vector3::<f64>::new(
+                center.x + radius * f64::sin(group_angle) * f64::cos(j as f64 * new_angle_interval),
+                center.y + f64::cos(group_angle) * radius,
+                center.z + radius * f64::sin(group_angle) * f64::sin(j as f64 * new_angle_interval),
             );
             let to_strand_pos = from_strand_pos + (from_strand_pos - center).normalize() * length;
             let mut hair_strand = generate_straight_hair_strand(
