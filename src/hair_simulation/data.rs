@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use bevy::{
     log::info,
     math::{Quat, Vec3},
-    utils::info,
+    utils::{info, label},
 };
 
 use crate::plugins::instanced_mesh::InstanceData;
@@ -41,6 +41,7 @@ pub struct Frame {
 pub struct HairStrand {
     // Attachment Reference to Head
     pub attachment: usize,
+    pub last_pin: usize,
 
     // Basic properties
     pub radius: f64,
@@ -56,7 +57,7 @@ pub struct HairStrand {
     // Lines
     pub l_num: usize,
     pub l_momemtum: Vec<f64>,
-    pub l_initial_length: Vec<f64>,
+    pub l_rest_length: Vec<f64>,
     pub l_twist: Vec<f64>,
     pub l_angular: Vec<f64>,
     pub l_initial_kappa: Vec<na::Matrix4x1<f64>>,
@@ -117,9 +118,11 @@ pub fn generate_straight_hair_strand(
     youngs: f64,
     shear: f64,
     strand_radius: f64,
+    last_pin: usize,
 ) -> HairStrand {
     let mut hair_strand = HairStrand {
         attachment: 0,
+        last_pin,
         radius: strand_radius,
         youngs,
         shear,
@@ -131,7 +134,7 @@ pub fn generate_straight_hair_strand(
         l_momemtum: Vec::new(),
         l_twist: Vec::new(),
         l_angular: Vec::new(),
-        l_initial_length: Vec::new(),
+        l_rest_length: Vec::new(),
         l_initial_kappa: Vec::new(),
         reference_frame: Vec::new(),
     };
@@ -151,7 +154,7 @@ pub fn generate_straight_hair_strand(
 
         // Initialize initial length
         hair_strand
-            .l_initial_length
+            .l_rest_length
             .push(hair_strand.get_strand_length(i));
 
         // Initialize twist
@@ -188,6 +191,7 @@ pub fn generate_batch_hair_strands(
     shear: f64,
     mass: f64,
     strand_radius: f64,
+    last_pin: usize,
 ) -> SimulationData {
     let mut hair_strands = Vec::new();
     let mut head = Head {
@@ -224,6 +228,7 @@ pub fn generate_batch_hair_strands(
                 youngs,
                 shear,
                 strand_radius,
+                last_pin,
             );
 
             hair_strand.attachment = head.attachments.len();

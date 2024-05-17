@@ -16,6 +16,8 @@ use crate::{
     physic_simulation::interfaces::SimulationTaskInterface,
 };
 
+pub const MAX_T_DOT: f64 = 100.0;
+
 pub fn do_der(task_interface: &mut SimulationTaskInterface) {
     let hairs = &mut task_interface.data.hairs;
     print!("{:?}", hairs.strands.len());
@@ -46,7 +48,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         }
 
         for i in 0..strand.l_num {
-            velocity_0[(3 * strand.v_num + i, 0)] = strand.l_twist[i];
+            velocity_0[(3 * strand.v_num + i, 0)] = strand.l_angular[i];
         }
 
         let mut e_vec = Vec::new();
@@ -55,9 +57,10 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         for i in 0..strand.l_num {
             let e = strand.v_position[i + 1] - strand.v_position[i];
             let t = e.normalize();
+            // info!("{:?}", t);
             length_vec.push(e.norm());
 
-            let reference_frame = utils::parallel_transport(strand.reference_frame[i].t, t);
+            let reference_frame = utils::parallel_transport(strand.reference_frame[i].t, t.clone());
 
             strand.reference_frame[i].b = reference_frame.0;
             strand.reference_frame[i].n = reference_frame.2;
@@ -87,15 +90,24 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             if i == 0 {
                 kappa_b.push(na::Vector3::zeros());
             } else {
-                kappa_b.push(
-                    (2.0 * strand.reference_frame[i - 1]
+                let mut t_dot = strand.reference_frame[i - 1]
+                    .t
+                    .dot(&strand.reference_frame[i].t);
+                if t_dot > MAX_T_DOT {
+                    t_dot = MAX_T_DOT;
+                } else if t_dot < -MAX_T_DOT {
+                    t_dot = -MAX_T_DOT;
+                }
+                let temp_kappa_b = (2.0
+                    * strand.reference_frame[i - 1]
                         .t
                         .cross(&strand.reference_frame[i].t))
-                        / (1.0
-                            + strand.reference_frame[i - 1]
-                                .t
-                                .dot(&strand.reference_frame[i].t)),
-                );
+                    / (1.0 + t_dot);
+                if temp_kappa_b.norm() > 1.0 {
+                    kappa_b.push(temp_kappa_b.normalize() * 1.0);
+                } else {
+                    kappa_b.push(temp_kappa_b);
+                }
             }
         }
 
@@ -117,58 +129,51 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
 
         if strand.l_initial_kappa.len() == 0 {
             for i in 0..(strand.v_num - 1) {
-                strand.l_initial_kappa.push(kappa[i]);
+                if i == 0 {
+                    strand
+                        .l_initial_kappa
+                        .push(na::Matrix4x1::new(0.0, 0.0, 0.0, 0.0));
+                } else {
+                    strand.l_initial_kappa.push(kappa[i]);
+                }
             }
             info!("kappa initialized");
         }
 
         // Apply stretch
-        for i in 1..(strand.v_num - 1) {
+        for i in 0..strand.l_num {
             let f_si = PI
-                * strand.radius.powf(2.0)
+                * strand.radius.powi(2)
                 * strand.youngs
-                * ((length_vec[i] / strand.l_initial_length[i] - 1.0)
+                * ((length_vec[i] / strand.l_rest_length[i] - 1.0) * strand.reference_frame[i].t);
+
+            if i > strand.last_pin {
+                force[i * 3] += f_si[0];
+                force[i * 3 + 1] += f_si[1];
+                force[i * 3 + 2] += f_si[2];
+            }
+
+            force[(i + 1) * 3] -= f_si[0];
+            force[(i + 1) * 3 + 1] -= f_si[1];
+            force[(i + 1) * 3 + 2] -= f_si[2];
+
+            let h_i = PI
+                * strand.radius.powi(2)
+                * strand.youngs
+                * (1.0 / strand.l_rest_length[i]
                     * strand.reference_frame[i].t
-                    - (length_vec[i - 1] / strand.l_initial_length[i - 1] - 1.0)
-                        * strand.reference_frame[i - 1].t);
+                    * strand.reference_frame[i].t.transpose());
+            // info!("{:?}", h_i);
 
-            force[i * 3] += f_si[0];
-            force[i * 3 + 1] += f_si[1];
-            force[i * 3 + 2] += f_si[2];
+            if i > strand.last_pin {
+                add_to_matrix(&mut hessian, &h_i, ((i * 3), (i * 3)));
+                add_to_matrix(&mut hessian, &-h_i, ((i * 3), ((i + 1) * 3)));
+                add_to_matrix(&mut hessian, &-h_i, (((i + 1) * 3), (i * 3)));
+            }
 
-            let h_i_1 = PI
-                * strand.radius.powf(2.0)
-                * strand.youngs
-                * ((1.0 / strand.l_initial_length[i - 1] - 1.0 / length_vec[i - 1])
-                    * na::Matrix3::<f64>::identity()
-                    + strand.reference_frame[i - 1].t
-                        * strand.reference_frame[i - 1].t.transpose());
-
-            let h_i1 = PI
-                * strand.radius.powf(2.0)
-                * strand.youngs
-                * ((1.0 / strand.l_initial_length[i] - 1.0 / length_vec[i])
-                    * na::Matrix3::<f64>::identity()
-                    + strand.reference_frame[i].t * strand.reference_frame[i].t.transpose());
-
-            add_to_matrix(&mut hessian, &h_i_1, ((i * 3), ((i - 1) * 3)));
-            add_to_matrix(&mut hessian, &h_i_1.transpose(), (((i - 1) * 3), (i * 3)));
-
-            add_to_matrix(&mut hessian, &h_i1, ((i * 3), ((i + 1) * 3)));
-            add_to_matrix(&mut hessian, &h_i1.transpose(), (((i + 1) * 3), (i * 3)));
-
-            add_to_matrix(&mut hessian, &(-h_i_1 - h_i1), ((i * 3), (i * 3)));
+            add_to_matrix(&mut hessian, &h_i, (((i + 1) * 3), ((i + 1) * 3)));
         }
-
-        let f_s_last = -PI
-            * strand.radius.powf(2.0)
-            * strand.youngs
-            * (length_vec[strand.v_num - 2] / strand.l_initial_length[strand.v_num - 2] - 1.0)
-            * strand.reference_frame[strand.v_num - 2].t;
-
-        force[(strand.v_num - 1) * 3] = force[(strand.v_num - 1) * 3] + f_s_last[0];
-        force[(strand.v_num - 1) * 3 + 1] = force[(strand.v_num - 1) * 3 + 1] + f_s_last[1];
-        force[(strand.v_num - 1) * 3 + 2] = force[(strand.v_num - 1) * 3 + 2] + f_s_last[2];
+        // info!("{:?}", force);
 
         let mut nabla_kappa_vec = vec![vec![na::Matrix4x3::<f64>::zeros(); 3]; strand.v_num];
 
@@ -188,7 +193,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     &material_frame,
                     i - 1,
                 );
-                info!("nabla_i_kappa_i_1{:?}", nabla_i_kappa_i_1);
+                // info!("nabla_i_kappa_i_1{:?}", nabla_i_kappa_i_1);
                 nabla_kappa_vec[i][0] = nabla_i_kappa_i_1;
             }
 
@@ -201,7 +206,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     &material_frame,
                     i,
                 );
-                info!("nabla_i_kappa_i{:?}", nabla_i_kappa_i);
+                // info!("nabla_i_kappa_i{:?}", nabla_i_kappa_i);
                 nabla_kappa_vec[i][1] = nabla_i_kappa_i;
             }
 
@@ -214,7 +219,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                     &material_frame,
                     i + 1,
                 );
-                info!("nabla_i_kappa_i1{:?}", nabla_i_kappa_i1);
+                // info!("nabla_i_kappa_i1{:?}", nabla_i_kappa_i1);
                 nabla_kappa_vec[i][2] = nabla_i_kappa_i1;
             }
         }
@@ -309,47 +314,45 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             add_to_matrix(&mut hessian, &h_i_i, ((i * 3), (i * 3)));
         }
 
-        for i in 0..strand.l_num {
-            let mut nabla_i_kappa_i = na::Matrix4x1::<f64>::zeros();
+        // for i in 0..strand.l_num {
+        //     let mut nabla_i_kappa_i = na::Matrix4x1::<f64>::zeros();
 
-            nabla_i_kappa_i[1] = -material_frame[i].n.dot(&kappa_b[i]);
-            nabla_i_kappa_i[3] = -material_frame[i].b.dot(&kappa_b[i]);
-            let mut tah = nabla_i_kappa_i.transpose() * (kappa[i] - strand.l_initial_kappa[i])
-                / length_vec[i];
+        //     nabla_i_kappa_i[1] = -material_frame[i].n.dot(&kappa_b[i]);
+        //     nabla_i_kappa_i[3] = -material_frame[i].b.dot(&kappa_b[i]);
+        //     let mut tah = nabla_i_kappa_i.transpose() * (kappa[i] - strand.l_initial_kappa[i])
+        //         / length_vec[i];
 
-            if i + 1 < strand.l_num {
-                let mut nabla_i_kappa_i1 = na::Matrix4x1::<f64>::zeros();
-                nabla_i_kappa_i1[0] = -material_frame[i].n.dot(&kappa_b[i + 1]);
-                nabla_i_kappa_i1[2] = -material_frame[i].b.dot(&kappa_b[i + 1]);
+        //     if i + 1 < strand.l_num {
+        //         let mut nabla_i_kappa_i1 = na::Matrix4x1::<f64>::zeros();
+        //         nabla_i_kappa_i1[0] = -material_frame[i].n.dot(&kappa_b[i + 1]);
+        //         nabla_i_kappa_i1[2] = -material_frame[i].b.dot(&kappa_b[i + 1]);
 
-                tah += nabla_i_kappa_i1.transpose()
-                    * (kappa[i + 1] - strand.l_initial_kappa[i + 1])
-                    / length_vec[i + 1];
-            }
+        //         tah += nabla_i_kappa_i1.transpose()
+        //             * (kappa[i + 1] - strand.l_initial_kappa[i + 1])
+        //             / length_vec[i + 1];
+        //     }
 
-            tah *= -PI * strand.radius.powf(4.0) * strand.youngs / 8.0;
+        //     tah *= -PI * strand.radius.powf(4.0) * strand.youngs / 8.0;
 
-            force[strand.v_num * 3 + i] += tah[0];
-        }
+        //     force[strand.v_num * 3 + i] += tah[0];
+        // }
 
         // info!("{:?}", force);
 
         // Apply twist
 
         // Apply gravity
-        for i in 1..(strand.v_num) {
+        for i in (strand.last_pin + 1)..(strand.v_num) {
             force[i * 3] += 0.0;
-            force[i * 3 + 1] += -9.8 * strand.v_mass[i];
+            force[i * 3 + 1] -= 9.8 * strand.v_mass[i];
             force[i * 3 + 2] += 0.0;
 
-            // force[i * 3] -= strand.v_velocity[i].x.powf(2.0) * 0.0000001;
-            // force[i * 3 + 1] -= strand.v_velocity[i].y.powf(2.0) * 0.0000001;
-            // force[i * 3 + 2] -= strand.v_velocity[i].z.powf(2.0) * 0.0000001;
+            // hessian[(i * 3 + 1, i * 3 + 1)] += 9.8;
         }
 
         // info!("{:?}", force);
         // info!("{:?}", hessian);
-        let a = mass.clone() + task_interface.delta_time.powf(2.0) * hessian;
+        let a = mass.clone() + task_interface.delta_time.powi(2) * hessian;
 
         let b = mass.clone() * velocity_0 + task_interface.delta_time * force;
 
@@ -357,7 +360,7 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
         velocity = a.lu().solve(&b).unwrap();
 
         // Update strand states
-        for i in 1..(strand.v_num) {
+        for i in (strand.last_pin + 1)..(strand.v_num) {
             strand.v_velocity[i] =
                 na::Vector3::new(velocity[i * 3], velocity[i * 3 + 1], velocity[i * 3 + 2]);
 
@@ -365,10 +368,10 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
                 strand.v_position[i] + task_interface.delta_time * strand.v_velocity[i];
         }
 
-        for i in 0..(strand.l_num) {
-            strand.l_angular[i] = velocity[3 * strand.v_num + i];
+        // for i in 0..(strand.l_num) {
+        //     strand.l_angular[i] = velocity[3 * strand.v_num + i];
 
-            strand.l_twist[i] += task_interface.delta_time * strand.l_angular[i];
-        }
+        //     strand.l_twist[i] += task_interface.delta_time * strand.l_angular[i];
+        // }
     }
 }

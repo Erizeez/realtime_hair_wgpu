@@ -56,10 +56,11 @@ pub fn init_simulation(
         3,
         0.5,
         30,
-        3.65e3,
-        1.21e9,
+        1.9e10,
+        7.1e9,
         10e-6,
-        0.09e-3,
+        0.0001,
+        0,
     );
 
     let hair_data: Vec<InstanceData> = scheduler

@@ -1,6 +1,8 @@
 use bevy::{log::info, utils::info};
 
 use crate::hair_simulation::data::Frame;
+
+use super::MAX_T_DOT;
 extern crate nalgebra as na;
 
 pub fn parallel_transport(
@@ -71,10 +73,16 @@ pub fn partial_kappa(
         latter_sign = latter_sign * -1;
     }
 
+    let mut t_dot = reference_frame[index - 1].t.dot(&reference_frame[index].t);
+    if t_dot > MAX_T_DOT {
+        t_dot = MAX_T_DOT;
+    } else if t_dot < -MAX_T_DOT {
+        t_dot = -MAX_T_DOT;
+    }
+
     let e = e_vec[e_index];
     let kappa_part = -kappa[index][kappa_index] * t_tilde;
-    let latter_part = (2.0 * reference_frame[t_index].t.cross(&m))
-        / (1.0 + reference_frame[index - 1].t.dot(&reference_frame[index].t));
+    let latter_part = (2.0 * reference_frame[t_index].t.cross(&m)) / (1.0 + t_dot);
 
     let result = 1.0 / e.norm() * (kappa_part + latter_sign as f64 * latter_part);
     // info!("result: {:?}", result);
