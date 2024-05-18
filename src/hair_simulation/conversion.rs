@@ -53,7 +53,7 @@ pub fn init_simulation(
         convert_to_na_vec3(head_position.clone()),
         head_radius,
         PI / 4.0,
-        3,
+        5,
         0.5,
         30,
         1.9e10,
@@ -90,7 +90,7 @@ pub fn init_simulation(
             .spawn(PbrBundle {
                 mesh: meshes.add(Sphere::new(head_radius as f32)),
                 material: materials.add(StandardMaterial {
-                    base_color: Color::rgba(1.0, 0.8, 0.6, 0.0),
+                    base_color: Color::rgba(1.0, 0.8, 0.6, 0.5),
                     alpha_mode: AlphaMode::Mask(0.5),
                     ..Default::default()
                 }),
