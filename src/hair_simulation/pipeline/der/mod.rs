@@ -2,13 +2,14 @@ pub mod methods;
 pub mod utils;
 
 extern crate nalgebra as na;
+use core::task;
 use std::f64::consts::PI;
 
-use bevy::log::info;
+use bevy::{log::info, scene::ron::de};
 
 use crate::{
     hair_simulation::{
-        data::Frame,
+        data::{self, Frame},
         pipeline::der::utils::{
             add_to_matrix, calc_nabla_i_kappa_i, calc_nabla_i_kappa_i1, calc_nabla_i_kappa_i_1,
         },
@@ -20,6 +21,7 @@ pub const MAX_T_DOT: f64 = 100.0;
 
 pub fn do_der(task_interface: &mut SimulationTaskInterface) {
     let hairs = &mut task_interface.data.hairs;
+    let head = &task_interface.data.head;
     print!("{:?}", hairs.strands.len());
 
     for strand in hairs.strands.iter_mut() {
@@ -348,6 +350,20 @@ pub fn do_der(task_interface: &mut SimulationTaskInterface) {
             force[i * 3 + 2] += 0.0;
 
             // hessian[(i * 3 + 1, i * 3 + 1)] += 9.8;
+        }
+
+        // Apply force from head
+        for i in (strand.last_pin + 1)..(strand.v_num) {
+            let velocity_norm = strand.v_velocity[i].norm();
+            let distance = (strand.v_position[i] - head.position).norm();
+            let direction = (strand.v_position[i] - head.position).normalize();
+            let depth = distance - head.radius - 0.01;
+            if depth < 0.0 {
+                let force_head = direction * depth * depth * 20.0 * velocity_norm;
+                force[i * 3] += force_head.x;
+                force[i * 3 + 1] += force_head.y;
+                force[i * 3 + 2] += force_head.z;
+            }
         }
 
         // info!("{:?}", force);
