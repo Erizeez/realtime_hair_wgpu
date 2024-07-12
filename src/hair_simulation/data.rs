@@ -77,7 +77,7 @@ pub fn convert_to_na_vec3(v: Vec3) -> na::Vector3<f64> {
 impl HairStrand {
     pub fn to_instance_data(&self) -> Vec<InstanceData> {
         let mut instance_data = Vec::new();
-        for i in 0..(self.v_num - 1) {
+        for i in 0..(self.v_num - 2) {
             let from_pos = self.v_position[i as usize];
             let to_pos = self.v_position[(i + 1) as usize];
 
